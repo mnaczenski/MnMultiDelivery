@@ -2,11 +2,15 @@
 
 Lets customers split one order into several deliveries on the checkout confirm page. Each delivery can have its own address and shipping method, and the split can follow a rule: the customer's own choice, availability, delivery time or warehouse.
 
-![Delivery planner on the confirm page](docs/images/planner-manual.png)
+[![Demo: a customer splits an order into two deliveries in the checkout (51 seconds)](docs/images/demo-video.png)](docs/video/multi-delivery-demo.mp4)
+
+*[Watch the demo](docs/video/multi-delivery-demo.mp4) (51 seconds): a customer adds a second delivery, moves two items into it and sends it to another address. Every change applies without reloading the page.*
 
 **Contents:** [Features](#features) · [Requirements](#requirements) · [Installation](#installation) · [Configuration](#configuration) · [Order confirmation mail](#order-confirmation-mail) · [Rule Builder](#rule-builder) · [Store API](#store-api) · [How it works](#how-it-works) · [Limitations](#limitations) · [Extending](#extending) · [Development](#development) · [Changelog](CHANGELOG.md) · [Compatibility policy](docs/compatibility.md)
 
 ## Features
+
+![Delivery planner on the confirm page](docs/images/planner-manual.png)
 
 - **Delivery planner on the confirm page.** Move items, or a part of their quantity, between deliveries, add and remove deliveries, and pick an address and a shipping method per delivery. Changes apply in the background without reloading the page, and the plain forms still work without JavaScript.
 - **Splitting rules** (technical name in brackets)
