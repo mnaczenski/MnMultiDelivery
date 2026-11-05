@@ -107,6 +107,44 @@
     </card>
 
     <card>
+        <title>Deliveries to other countries</title>
+        <title lang="de-DE">Lieferungen in andere Länder</title>
+        <component name="mn-multi-delivery-country-mode-info">
+            <name>countryModeInfo</name>
+        </component>
+        <input-field type="single-select">
+            <name>countryMode</name>
+            <label>Deliveries to addresses in another country</label>
+            <label lang="de-DE">Lieferungen an Adressen in einem anderen Land</label>
+            <defaultValue>sameCountry</defaultValue>
+            <options>
+                <option>
+                    <id>sameCountry</id>
+                    <name>Only support orders from the same country</name>
+                    <name lang="de-DE">Nur Bestellungen innerhalb desselben Landes unterstützen</name>
+                </option>
+                <option>
+                    <id>separateOrders</id>
+                    <name>Support orders from different countries (separate orders)</name>
+                    <name lang="de-DE">Bestellungen in verschiedene Länder unterstützen (separate Bestellungen)</name>
+                </option>
+            </options>
+        </input-field>
+        <input-field type="textarea">
+            <name>separateOrderPaymentHandlers</name>
+            <label>Payment handlers that allow separate orders (one per line, partial class names)</label>
+            <label lang="de-DE">Zahlungs-Handler, die separate Bestellungen erlauben (einer pro Zeile, Teil des Klassennamens)</label>
+            <helpText>Each separate order is paid on its own. Only the main order goes through the payment step, so only payment methods without an online payment step work.</helpText>
+            <helpText lang="de-DE">Jede separate Bestellung wird einzeln bezahlt. Nur die Hauptbestellung durchläuft den Zahlungsschritt, daher funktionieren nur Zahlungsarten ohne Online-Zahlung.</helpText>
+            <defaultValue>Shopware\Core\Checkout\Payment\Cart\PaymentHandler\InvoicePayment
+Shopware\Core\Checkout\Payment\Cart\PaymentHandler\PrePayment
+Shopware\Core\Checkout\Payment\Cart\PaymentHandler\CashPayment
+Shopware\Core\Checkout\Payment\Cart\PaymentHandler\DebitPayment
+Shopware\Core\Checkout\Payment\Cart\PaymentHandler\DefaultPayment</defaultValue>
+        </input-field>
+    </card>
+
+    <card>
         <title>Shipping costs</title>
         <title lang="de-DE">Versandkosten</title>
         <input-field type="single-select">

@@ -55,6 +55,24 @@
             "shipsFrom": "Ships from",
             "deliverTo": "Deliver to",
             "expected": "Expected"
+        },
+        "separate": {
+            "badge": "Separate order · %country%",
+            "hint": "Deliveries can go to any of your addresses. A delivery to another country than %country% is placed as a separate order, with that country's taxes and shipping costs, its own confirmation and its own invoice.",
+            "paymentHint": "Deliveries can go to your addresses in %country%. To send a delivery to another country, choose a payment method without online payment, such as invoice or prepayment – it is then placed as a separate order.",
+            "orderHeading": "Order %number% · %country%",
+            "grandTotal": "Total of all %count% orders",
+            "placedHeading": "Your purchase was placed as %count% orders",
+            "placedText": "Deliveries to other countries are separate orders, each with its own confirmation and invoice.",
+            "orderNumber": "Order %number%",
+            "thisOrder": "this order",
+            "finishOrderHeading": "Order %number% · %country%",
+            "paymentMethod": "Payment method",
+            "orderTotal": "Order total"
         }
+    },
+    "error": {
+        "MN_MULTI_DELIVERY__SEPARATE_ORDER_PAYMENT": "Deliveries to other countries are placed as separate orders. That isn't possible with the selected payment method – please choose invoice or prepayment, or send all deliveries within one country.",
+        "MN_MULTI_DELIVERY__SEPARATE_ORDER_INVALID": "One of the orders for a delivery to another country can't be placed. Please check that delivery's address and shipping method."
     }
 }

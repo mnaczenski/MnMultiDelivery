@@ -19,7 +19,8 @@
                     "moveTargets",
                     "groupNumbers",
                     "shippingCountryId",
-                    "addressIds"
+                    "addressIds",
+                    "separateOrders"
                 ],
                 "properties": {
                     "apiAlias": {
@@ -84,7 +85,7 @@
                     "shippingCountryId": {
                         "type": "string",
                         "pattern": "^[0-9a-f]{32}$",
-                        "description": "Delivery addresses must be in this country."
+                        "description": "The shipping country. Addresses in other countries are offered only when separateOrders.paymentAllowed is true."
                     },
                     "addressIds": {
                         "type": "array",
@@ -93,6 +94,115 @@
                             "pattern": "^[0-9a-f]{32}$"
                         },
                         "description": "Customer addresses a delivery may use."
+                    },
+                    "separateOrders": {
+                        "type": "object",
+                        "description": "Deliveries to other countries (setting countryMode). When the cart has some, orders lists every order the checkout will place: the separate orders first, the main order last.",
+                        "required": [
+                            "enabled",
+                            "paymentAllowed",
+                            "orders",
+                            "totalPrice"
+                        ],
+                        "properties": {
+                            "enabled": {
+                                "type": "boolean",
+                                "description": "The merchant allows deliveries to other countries as separate orders."
+                            },
+                            "paymentAllowed": {
+                                "type": "boolean",
+                                "description": "The selected payment method allows separate orders."
+                            },
+                            "totalPrice": {
+                                "type": "number",
+                                "description": "Sum of all orders' totals; 0 when orders is empty."
+                            },
+                            "orders": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "required": [
+                                        "main",
+                                        "countryId",
+                                        "lineItems",
+                                        "positionPrice",
+                                        "shippingCosts",
+                                        "netPrice",
+                                        "totalPrice",
+                                        "taxStatus",
+                                        "calculatedTaxes",
+                                        "blockingErrors"
+                                    ],
+                                    "properties": {
+                                        "main": {
+                                            "type": "boolean",
+                                            "description": "The main order (shipping country)."
+                                        },
+                                        "groupId": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "description": "Delivery group of a separate order, null for the main order."
+                                        },
+                                        "addressId": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ],
+                                            "description": "Delivery address of a separate order, null for the main order."
+                                        },
+                                        "countryId": {
+                                            "type": "string",
+                                            "pattern": "^[0-9a-f]{32}$"
+                                        },
+                                        "lineItems": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "integer"
+                                            },
+                                            "description": "Quantity per top-level cart item id."
+                                        },
+                                        "positionPrice": {
+                                            "type": "number"
+                                        },
+                                        "shippingCosts": {
+                                            "type": "number"
+                                        },
+                                        "netPrice": {
+                                            "type": "number"
+                                        },
+                                        "totalPrice": {
+                                            "type": "number"
+                                        },
+                                        "taxStatus": {
+                                            "type": "string"
+                                        },
+                                        "calculatedTaxes": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "taxRate": {
+                                                        "type": "number"
+                                                    },
+                                                    "tax": {
+                                                        "type": "number"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "blockingErrors": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "description": "Message keys of errors that would stop this order from being placed."
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             },

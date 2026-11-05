@@ -42,6 +42,13 @@ class DeliveryPlanRoute extends AbstractDeliveryPlanRoute
     {
         $cart = $this->cartService->getCart($context->getToken(), $context);
         $data = $this->planService->describe($cart, $context);
+        // Totals and items are enough for clients; the full carts stay internal.
+        $data['separateOrders']['orders'] = array_map(
+            static fn (array $order): array => array_diff_key($order, ['cart' => true, 'country' => true]),
+            $data['separateOrders']['orders'],
+        );
+
+        $data['shippingCountryId'] = $context->getShippingLocation()->getCountry()->getId();
 
         $customer = $context->getCustomer();
         $data['addressIds'] = $customer === null ? [] : array_values($this->listAddressRoute

@@ -1,0 +1,26 @@
+{#
+    The orders placed together with "order" because deliveries went to other
+    countries (custom field mn_multi_delivery_orders). Shown on the finish
+    page and in the account's order details.
+#}
+{% block component_mn_multi_delivery_separate_orders %}
+    {% set mnGroup = order.customFields.mn_multi_delivery_orders|default(null) %}
+    {% if mnGroup and mnGroup.orders|default([])|length > 1 %}
+        <section class="card checkout-card mn-md-separate-orders">
+            <div class="card-body">
+                <h2 class="card-title">{{ 'mnMultiDelivery.separate.placedHeading'|trans({'%count%': mnGroup.orders|length})|sw_sanitize }}</h2>
+                <p>{{ 'mnMultiDelivery.separate.placedText'|trans|sw_sanitize }}</p>
+                <ul class="mn-md-separate-orders-list">
+                    {% for mnOrder in mnGroup.orders %}
+                        <li{% if mnOrder.id == order.id %} class="is-current"{% endif %}>
+                            <strong>{{ 'mnMultiDelivery.separate.orderNumber'|trans({'%number%': mnOrder.orderNumber})|sw_sanitize }}</strong>
+                            {% if mnOrder.country %} · {{ mnOrder.country }}{% endif %}
+                            · {{ mnOrder.amountTotal|currency(mnOrder.currencyIso ?: order.currency.isoCode) }}
+                            {% if mnOrder.id == order.id %} ({{ 'mnMultiDelivery.separate.thisOrder'|trans|sw_sanitize }}){% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </section>
+    {% endif %}
+{% endblock %}

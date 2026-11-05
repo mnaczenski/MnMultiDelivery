@@ -3,5 +3,6 @@
 {% block page_account_order_item_detail_table_footer %}
     {{ parent() }}
 
+    {% sw_include '@Storefront/storefront/component/mn-multi-delivery/separate-orders.html.twig' with { order: order } %}
     {% sw_include '@Storefront/storefront/component/mn-multi-delivery/delivery-overview.html.twig' with { deliveries: order.deliveries } %}
 {% endblock %}

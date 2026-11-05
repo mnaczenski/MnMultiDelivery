@@ -186,3 +186,51 @@ Neutral styles; themes can restyle the .mn-md-* classes.
     font-size: 0.85rem;
     color: $gray-600;
 }
+
+// Deliveries to other countries (separate orders)
+.mn-md-separate-badge {
+    display: inline-block;
+    margin: 0.25rem 0 0;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: rgba($primary, 0.1);
+    color: $primary;
+}
+
+.mn-md-order-heading {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid $border-color;
+    font-weight: 600;
+
+    &:first-child {
+        margin-top: 0;
+        padding-top: 0;
+        border-top: 0;
+    }
+}
+
+.mn-md-grand-total {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 2px solid $border-color;
+}
+
+.mn-md-separate-orders-list {
+    margin: 0;
+    padding-left: 1.25rem;
+
+    .is-current {
+        font-weight: 600;
+    }
+}
+
+.mn-md-finish-order {
+    margin-bottom: 1.5rem;
+
+    .mn-md-finish-order-meta p {
+        margin-bottom: 0.25rem;
+    }
+}

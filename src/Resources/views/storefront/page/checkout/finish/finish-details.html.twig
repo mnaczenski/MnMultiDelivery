@@ -3,6 +3,8 @@
 {% block page_checkout_finish_order %}
     {{ parent() }}
 
+    {% sw_include '@Storefront/storefront/component/mn-multi-delivery/separate-orders.html.twig' with { order: page.order } %}
+
     {% if page.order.deliveries|default([])|length > 1 %}
         <section class="card checkout-card mn-md-finish">
             <div class="card-body">

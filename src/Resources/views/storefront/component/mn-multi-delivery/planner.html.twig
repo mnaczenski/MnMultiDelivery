@@ -81,6 +81,13 @@
                                                         {% endif %}
                                                     </h3>
                                                 {% endblock %}
+                                                {% if delivery.location.country.id != context.shippingLocation.country.id %}
+                                                    {% block component_mn_multi_delivery_item_separate_order %}
+                                                        <p class="mn-md-separate-badge">
+                                                            {{ 'mnMultiDelivery.separate.badge'|trans({'%country%': delivery.location.country.translated.name})|sw_sanitize }}
+                                                        </p>
+                                                    {% endblock %}
+                                                {% endif %}
                                                 {% block component_mn_multi_delivery_item_meta %}
                                                     <p class="mn-md-delivery-meta">
                                                         {{ 'mnMultiDelivery.arrives'|trans }}:
@@ -102,7 +109,7 @@
                                                         <option value="">{{ 'mnMultiDelivery.addressDefault'|trans }}</option>
                                                         {% for address in md.addresses %}
                                                             <option value="{{ address.id }}" {% if settings.addressId|default(null) == address.id %}selected{% endif %}>
-                                                                {{ address.firstName }} {{ address.lastName }}, {{ address.street }}, {{ address.zipcode }} {{ address.city }}
+                                                                {{ address.firstName }} {{ address.lastName }}, {{ address.street }}, {{ address.zipcode }} {{ address.city }}{% if address.countryId != context.shippingLocation.country.id %}, {{ address.country.translated.name }}{% endif %}
                                                             </option>
                                                         {% endfor %}
                                                     </select>
@@ -194,7 +201,14 @@
                 {% endblock %}
 
                 {% block component_mn_multi_delivery_hint %}
-                    <p class="mn-md-hint">{{ 'mnMultiDelivery.countryHint'|trans({'%country%': context.shippingLocation.country.translated.name}) }}</p>
+                    {% set separate = md.separateOrders|default({}) %}
+                    {% if separate.paymentAllowed|default(false) %}
+                        <p class="mn-md-hint">{{ 'mnMultiDelivery.separate.hint'|trans({'%country%': context.shippingLocation.country.translated.name})|sw_sanitize }}</p>
+                    {% elseif separate.enabled|default(false) %}
+                        <p class="mn-md-hint">{{ 'mnMultiDelivery.separate.paymentHint'|trans({'%country%': context.shippingLocation.country.translated.name})|sw_sanitize }}</p>
+                    {% else %}
+                        <p class="mn-md-hint">{{ 'mnMultiDelivery.countryHint'|trans({'%country%': context.shippingLocation.country.translated.name}) }}</p>
+                    {% endif %}
                 {% endblock %}
 
                 {% block component_mn_multi_delivery_actions %}

@@ -13,6 +13,18 @@
         "stateChanged": "Delivery status changed.",
         "trackingSaved": "Tracking codes saved.",
         "noteCreated": "Delivery note created. You'll find it under Documents.",
-        "ruleDeliveryCount": "Number of deliveries (Multi Delivery)"
+        "ruleDeliveryCount": "Number of deliveries (Multi Delivery)",
+        "countryMode": {
+            "sameTitle": "Only support orders from the same country (default)",
+            "sameText": "Customers can send deliveries only to their addresses in the order's shipping country. One order, one country: taxes, prices and shipping rules are always right.",
+            "separateTitle": "Support orders from different countries (separate orders)",
+            "separateText": "Customers can also pick addresses in other countries. Each delivery to another country is placed as a separate order when the customer confirms; deliveries within the shipping country stay in the main order.",
+            "taxes": "Each separate order is calculated by Shopware for its own country: VAT, tax-free rules, country-specific prices and shipping rules. The confirm page shows every order's totals and the sum.",
+            "payment": "Each order is paid on its own, and only the main order goes through the payment step. Separate orders are therefore only offered with the payment methods listed below (by default invoice, prepayment, cash on delivery, direct debit); with other methods deliveries stay in the shipping country.",
+            "documents": "Every order has its own order number, confirmation mail, invoice, delivery note and order state, and is exported to ERP, shipping and accounting tools like any other order.",
+            "promotions": "Promotions and vouchers stay on the main order; separate orders get none. Minimum order values and rules are checked per order.",
+            "failure": "Before anything is placed, every order is checked. If an order still fails while placing, the orders already placed are cancelled (customers may already have their confirmation mail).",
+            "linked": "The orders of one checkout are linked in the order custom field \"mn_multi_delivery_orders\" and listed on the finish page and in the customer account."
+        }
     }
 }

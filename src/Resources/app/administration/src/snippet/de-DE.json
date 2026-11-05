@@ -13,6 +13,18 @@
         "stateChanged": "Lieferstatus geändert.",
         "trackingSaved": "Sendungsnummern gespeichert.",
         "noteCreated": "Lieferschein erstellt. Sie finden ihn unter Dokumente.",
-        "ruleDeliveryCount": "Anzahl Lieferungen (Mehrfachlieferung)"
+        "ruleDeliveryCount": "Anzahl Lieferungen (Mehrfachlieferung)",
+        "countryMode": {
+            "sameTitle": "Nur Bestellungen innerhalb desselben Landes unterstützen (Standard)",
+            "sameText": "Kunden können Lieferungen nur an ihre Adressen im Lieferland der Bestellung senden. Eine Bestellung, ein Land: Steuern, Preise und Versandregeln stimmen immer.",
+            "separateTitle": "Bestellungen in verschiedene Länder unterstützen (separate Bestellungen)",
+            "separateText": "Kunden können auch Adressen in anderen Ländern wählen. Jede Lieferung in ein anderes Land wird beim Absenden als separate Bestellung aufgegeben; Lieferungen im Lieferland bleiben in der Hauptbestellung.",
+            "taxes": "Shopware berechnet jede separate Bestellung für ihr eigenes Land: Mehrwertsteuer, Steuerbefreiungen, länderspezifische Preise und Versandregeln. Die Bestellbestätigungsseite zeigt die Summen jeder Bestellung und die Gesamtsumme.",
+            "payment": "Jede Bestellung wird einzeln bezahlt, und nur die Hauptbestellung durchläuft den Zahlungsschritt. Separate Bestellungen gibt es daher nur mit den unten aufgeführten Zahlungsarten (standardmäßig Rechnung, Vorkasse, Nachnahme, Lastschrift); mit anderen Zahlungsarten bleiben Lieferungen im Lieferland.",
+            "documents": "Jede Bestellung hat eine eigene Bestellnummer, Bestätigungsmail, Rechnung, einen eigenen Lieferschein und Bestellstatus und wird wie jede andere Bestellung an ERP-, Versand- und Buchhaltungssysteme übergeben.",
+            "promotions": "Aktionen und Gutscheine bleiben bei der Hauptbestellung; separate Bestellungen erhalten keine. Mindestbestellwerte und Regeln werden pro Bestellung geprüft.",
+            "failure": "Bevor etwas aufgegeben wird, wird jede Bestellung geprüft. Scheitert eine Bestellung trotzdem beim Aufgeben, werden die bereits aufgegebenen storniert (Kunden haben dann eventuell schon eine Bestätigungsmail).",
+            "linked": "Die Bestellungen eines Checkouts sind im Zusatzfeld \"mn_multi_delivery_orders\" verknüpft und werden auf der Abschlussseite und im Kundenkonto aufgeführt."
+        }
     }
 }

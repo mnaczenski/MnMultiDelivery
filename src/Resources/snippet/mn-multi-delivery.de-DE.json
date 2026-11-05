@@ -55,6 +55,24 @@
             "shipsFrom": "Versand aus",
             "deliverTo": "Lieferung an",
             "expected": "Voraussichtlich"
+        },
+        "separate": {
+            "badge": "Separate Bestellung · %country%",
+            "hint": "Lieferungen können an alle Ihre Adressen gehen. Eine Lieferung in ein anderes Land als %country% wird als separate Bestellung aufgegeben – mit den Steuern und Versandkosten dieses Landes, eigener Bestätigung und eigener Rechnung.",
+            "paymentHint": "Lieferungen können an Ihre Adressen in %country% gehen. Um eine Lieferung in ein anderes Land zu senden, wählen Sie eine Zahlungsart ohne Online-Zahlung, z. B. Rechnung oder Vorkasse – sie wird dann als separate Bestellung aufgegeben.",
+            "orderHeading": "Bestellung %number% · %country%",
+            "grandTotal": "Summe aller %count% Bestellungen",
+            "placedHeading": "Ihr Einkauf wurde als %count% Bestellungen aufgegeben",
+            "placedText": "Lieferungen in andere Länder sind separate Bestellungen, jeweils mit eigener Bestätigung und eigener Rechnung.",
+            "orderNumber": "Bestellung %number%",
+            "thisOrder": "diese Bestellung",
+            "finishOrderHeading": "Bestellung %number% · %country%",
+            "paymentMethod": "Zahlungsart",
+            "orderTotal": "Bestellsumme"
         }
+    },
+    "error": {
+        "MN_MULTI_DELIVERY__SEPARATE_ORDER_PAYMENT": "Lieferungen in andere Länder werden als separate Bestellungen aufgegeben. Mit der gewählten Zahlungsart ist das nicht möglich – bitte wählen Sie Rechnung oder Vorkasse oder liefern Sie alles innerhalb eines Landes.",
+        "MN_MULTI_DELIVERY__SEPARATE_ORDER_INVALID": "Eine der Bestellungen für eine Lieferung in ein anderes Land kann nicht aufgegeben werden. Bitte prüfen Sie Adresse und Versandart dieser Lieferung."
     }
 }

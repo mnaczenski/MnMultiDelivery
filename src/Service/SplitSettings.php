@@ -17,6 +17,12 @@ class SplitSettings
     public const COSTS_FREE = 'free';
     public const COSTS_FLAT = 'flat';
 
+    /** Deliveries stay in the shipping country (default). */
+    public const COUNTRY_SAME = 'sameCountry';
+
+    /** A delivery to another country becomes its own order. */
+    public const COUNTRY_SEPARATE_ORDERS = 'separateOrders';
+
     private const PREFIX = 'MnMultiDelivery.config.';
 
     public function __construct(private readonly SystemConfigService $systemConfig)
@@ -82,5 +88,40 @@ class SplitSettings
     public function extraDeliveryFlatPrice(SalesChannelContext $context): float
     {
         return max(0.0, $this->systemConfig->getFloat(self::PREFIX . 'extraDeliveryFlatPrice', $context->getSalesChannelId()));
+    }
+
+    /**
+     * @return self::COUNTRY_*
+     */
+    public function countryMode(SalesChannelContext $context): string
+    {
+        $value = $this->systemConfig->getString(self::PREFIX . 'countryMode', $context->getSalesChannelId());
+
+        return $value === self::COUNTRY_SEPARATE_ORDERS ? $value : self::COUNTRY_SAME;
+    }
+
+    /**
+     * Whether deliveries to another country may become separate orders right
+     * now: the merchant enabled it and the selected payment method has no
+     * online payment step (see separateOrderPaymentHandlers).
+     */
+    public function separateOrdersAllowed(SalesChannelContext $context): bool
+    {
+        return $this->countryMode($context) === self::COUNTRY_SEPARATE_ORDERS
+            && $this->separateOrderPaymentAllowed($context);
+    }
+
+    public function separateOrderPaymentAllowed(SalesChannelContext $context): bool
+    {
+        $handler = $context->getPaymentMethod()->getHandlerIdentifier();
+        $value = $this->systemConfig->getString(self::PREFIX . 'separateOrderPaymentHandlers', $context->getSalesChannelId());
+        foreach (preg_split('/[\n,]+/', $value) ?: [] as $allowed) {
+            $allowed = trim($allowed);
+            if ($allowed !== '' && str_contains($handler, $allowed)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

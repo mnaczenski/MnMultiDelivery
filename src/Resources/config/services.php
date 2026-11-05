@@ -9,6 +9,10 @@ use Mn\MultiDelivery\Policy\ShippingCostPolicyInterface;
 use Mn\MultiDelivery\Route\AbstractDeliveryPlanRoute;
 use Mn\MultiDelivery\Route\DeliveryPlanRoute;
 use Mn\MultiDelivery\Rule\DeliveryCountRule;
+use Mn\MultiDelivery\SeparateOrder\SeparateOrderCalculator;
+use Mn\MultiDelivery\SeparateOrder\SeparateOrderCartOrderRoute;
+use Mn\MultiDelivery\SeparateOrder\SeparateOrderContextFactory;
+use Mn\MultiDelivery\SeparateOrder\SeparateOrderSplitter;
 use Mn\MultiDelivery\Service\DeliveryPlanService;
 use Mn\MultiDelivery\Service\MailBlock;
 use Mn\MultiDelivery\Service\SplitGuard;
@@ -24,13 +28,21 @@ use Mn\MultiDelivery\Subscriber\DeliveryNoteSubscriber;
 use Mn\MultiDelivery\Subscriber\OrderConversionSubscriber;
 use Mn\MultiDelivery\Subscriber\OrderMailSubscriber;
 use Mn\MultiDelivery\Subscriber\OrderPlacedCriteriaSubscriber;
+use Mn\MultiDelivery\Subscriber\SeparateOrdersFinishPageSubscriber;
+use Shopware\Core\Checkout\Cart\CartCalculator;
+use Shopware\Core\Checkout\Cart\CartContextHasher;
+use Shopware\Core\Checkout\Cart\CartPersister;
 use Shopware\Core\Checkout\Cart\Delivery\DeliveryCalculator;
 use Shopware\Core\Checkout\Cart\Price\QuantityPriceCalculator;
+use Shopware\Core\Checkout\Cart\SalesChannel\CartOrderRoute;
 use Shopware\Core\Checkout\Cart\SalesChannel\CartService;
 use Shopware\Core\Checkout\Cart\Tax\TaxCalculator;
 use Shopware\Core\Checkout\Customer\SalesChannel\ListAddressRoute;
 use Shopware\Core\Framework\Adapter\Translation\Translator;
 use Shopware\Core\Framework\Adapter\Twig\TemplateFinder;
+use Shopware\Core\System\SalesChannel\Context\SalesChannelContextFactory;
+use Shopware\Core\System\SalesChannel\Context\SalesChannelContextPersister;
+use Shopware\Core\System\StateMachine\StateMachineRegistry;
 use Shopware\Core\System\SystemConfig\SystemConfigService;
 use Shopware\Storefront\Page\Checkout\Confirm\CheckoutConfirmPageLoader;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -72,6 +84,7 @@ return static function (ContainerConfigurator $container): void {
 
     // Policies
     $services->set(SameCountryAddressPolicy::class)
+        ->args([service(SplitSettings::class)])
         ->tag('mn.multi_delivery.address_policy');
     $services->set(DeliveryAddressPolicies::class)
         ->args([tagged_iterator('mn.multi_delivery.address_policy')]);
@@ -103,6 +116,28 @@ return static function (ContainerConfigurator $container): void {
             service(StrategyRegistry::class),
             service(SplitSettings::class),
             service('event_dispatcher'),
+            service(SeparateOrderCalculator::class),
+        ]);
+
+    // Deliveries to other countries as separate orders (setting countryMode)
+    $services->set(SeparateOrderSplitter::class)
+        ->args([service(SplitSettings::class)]);
+    $services->set(SeparateOrderContextFactory::class)
+        ->args([service(SalesChannelContextFactory::class), service(SalesChannelContextPersister::class)]);
+    $services->set(SeparateOrderCalculator::class)
+        ->args([service(SeparateOrderSplitter::class), service(SeparateOrderContextFactory::class), service(CartCalculator::class), service(CartPersister::class)]);
+    $services->set(SeparateOrderCartOrderRoute::class)
+        ->decorate(CartOrderRoute::class)
+        ->args([
+            service('.inner'),
+            service(SeparateOrderCalculator::class),
+            service(SplitSettings::class),
+            service(CartContextHasher::class),
+            service(CartPersister::class),
+            service('order.repository'),
+            service(StateMachineRegistry::class),
+            service('event_dispatcher'),
+            service('logger'),
         ]);
 
     // Subscribers
@@ -117,6 +152,9 @@ return static function (ContainerConfigurator $container): void {
     $services->set(OrderPlacedCriteriaSubscriber::class)
         ->tag('kernel.event_subscriber');
     $services->set(DeliveryNoteSubscriber::class)
+        ->tag('kernel.event_subscriber');
+    $services->set(SeparateOrdersFinishPageSubscriber::class)
+        ->args([service('order.repository')])
         ->tag('kernel.event_subscriber');
 
     $services->set(DeliveryCountRule::class)

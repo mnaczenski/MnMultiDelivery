@@ -5,9 +5,11 @@ namespace Mn\MultiDelivery\Service;
 use Mn\MultiDelivery\Cart\DeliveryGroupInfo;
 use Mn\MultiDelivery\Cart\DeliveryPlan;
 use Mn\MultiDelivery\Event\DeliveryPlanChangedEvent;
+use Mn\MultiDelivery\SeparateOrder\SeparateOrderCalculator;
 use Mn\MultiDelivery\Strategy\StrategyRegistry;
 use Shopware\Core\Checkout\Cart\Cart;
 use Shopware\Core\Checkout\Cart\SalesChannel\CartService;
+use Shopware\Core\System\Country\CountryEntity;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
@@ -28,6 +30,7 @@ class DeliveryPlanService
         private readonly StrategyRegistry $strategies,
         private readonly SplitSettings $settings,
         private readonly EventDispatcherInterface $dispatcher,
+        private readonly ?SeparateOrderCalculator $separateOrders = null,
     ) {
     }
 
@@ -124,7 +127,11 @@ class DeliveryPlanService
     /**
      * Everything a client needs to render the planner.
      *
-     * @return array{plan: DeliveryPlan, blockReason: ?string, strategies: list<string>, strategy: string, manualMoves: bool, adjustable: bool, adjusted: bool, manualGroups: list<string>, moveTargets: list<string>, groupNumbers: array<string, int>}
+     * "separateOrders" describes deliveries to other countries (setting
+     * countryMode): whether they are possible and, when the cart has some,
+     * every order the checkout will place with its calculated cart.
+     *
+     * @return array{plan: DeliveryPlan, blockReason: ?string, strategies: list<string>, strategy: string, manualMoves: bool, adjustable: bool, adjusted: bool, manualGroups: list<string>, moveTargets: list<string>, groupNumbers: array<string, int>, separateOrders: array<string, mixed>}
      */
     public function describe(Cart $cart, SalesChannelContext $context): array
     {
@@ -152,6 +159,76 @@ class DeliveryPlanService
             'manualGroups' => $plan->getManualGroups(),
             'moveTargets' => $this->moveTargets($plan, $cart, $context),
             'groupNumbers' => $groupNumbers,
+            'separateOrders' => $this->describeSeparateOrders($cart, $context),
+        ];
+    }
+
+    /**
+     * @return array{enabled: bool, paymentAllowed: bool, orders: list<array<string, mixed>>, totalPrice: float}
+     */
+    private function describeSeparateOrders(Cart $cart, SalesChannelContext $context): array
+    {
+        $enabled = $this->settings->countryMode($context) === SplitSettings::COUNTRY_SEPARATE_ORDERS;
+        $result = [
+            'enabled' => $enabled,
+            'paymentAllowed' => $enabled && $this->settings->separateOrderPaymentAllowed($context),
+            'orders' => [],
+            'totalPrice' => 0.0,
+        ];
+
+        $calculated = $result['paymentAllowed'] ? $this->separateOrders?->calculate($cart, $context) : null;
+        if ($calculated === null) {
+            return $result;
+        }
+
+        $split = $calculated['split'];
+        foreach ($split->parts as $part) {
+            $result['orders'][] = $this->describeOrder($part->cart, $part->groupId, false, $part->address->getId(), $part->address->getCountry());
+        }
+        if ($split->hasMainOrder()) {
+            $result['orders'][] = $this->describeOrder($split->mainCart, null, true, null, $context->getShippingLocation()->getCountry());
+        }
+        $result['totalPrice'] = round(array_sum(array_map(static fn (array $order) => $order['totalPrice'], $result['orders'])), 2);
+
+        return $result;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function describeOrder(Cart $cart, ?string $groupId, bool $main, ?string $addressId, ?CountryEntity $country): array
+    {
+        $price = $cart->getPrice();
+        $taxes = [];
+        foreach ($price->getCalculatedTaxes() as $tax) {
+            $taxes[] = ['taxRate' => $tax->getTaxRate(), 'tax' => $tax->getTax()];
+        }
+        $lineItems = [];
+        foreach ($cart->getLineItems() as $lineItem) {
+            $lineItems[$lineItem->getId()] = $lineItem->getQuantity();
+        }
+        $errors = [];
+        foreach ($cart->getErrors() as $error) {
+            if ($error->blockOrder()) {
+                $errors[] = $error->getMessageKey();
+            }
+        }
+
+        return [
+            'main' => $main,
+            'groupId' => $groupId,
+            'addressId' => $addressId,
+            'countryId' => $country?->getId(),
+            'country' => $country,
+            'lineItems' => $lineItems,
+            'positionPrice' => $price->getPositionPrice(),
+            'shippingCosts' => $cart->getShippingCosts()->getTotalPrice(),
+            'netPrice' => $price->getNetPrice(),
+            'totalPrice' => $price->getTotalPrice(),
+            'taxStatus' => $price->getTaxStatus(),
+            'calculatedTaxes' => $taxes,
+            'blockingErrors' => $errors,
+            'cart' => $cart,
         ];
     }
 

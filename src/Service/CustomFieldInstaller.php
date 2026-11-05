@@ -2,6 +2,7 @@
 
 namespace Mn\MultiDelivery\Service;
 
+use Mn\MultiDelivery\SeparateOrder\SeparateOrderCartOrderRoute;
 use Mn\MultiDelivery\Subscriber\OrderConversionSubscriber;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
@@ -19,6 +20,9 @@ use Shopware\Core\System\CustomField\CustomFieldTypes;
 class CustomFieldInstaller
 {
     public const SET_NAME = 'mn_multi_delivery';
+
+    /** Orders placed together (deliveries to other countries), on the order. */
+    public const ORDER_SET_NAME = 'mn_multi_delivery_order';
 
     /**
      * @param EntityRepository<\Shopware\Core\System\CustomField\Aggregate\CustomFieldSet\CustomFieldSetCollection> $customFieldSetRepository
@@ -47,11 +51,32 @@ class CustomFieldInstaller
                     'componentName' => 'sw-code-editor',
                 ],
             ]],
+        ], [
+            'id' => Uuid::fromStringToHex(self::ORDER_SET_NAME . '.set'),
+            'name' => self::ORDER_SET_NAME,
+            'config' => ['label' => ['en-GB' => 'Multi Delivery – orders placed together', 'de-DE' => 'Mehrfachlieferung – gemeinsam aufgegebene Bestellungen']],
+            'active' => true,
+            'relations' => [[
+                'id' => Uuid::fromStringToHex(self::ORDER_SET_NAME . '.relation'),
+                'entityName' => 'order',
+            ]],
+            'customFields' => [[
+                'id' => Uuid::fromStringToHex(self::ORDER_SET_NAME . '.field'),
+                'name' => SeparateOrderCartOrderRoute::CUSTOM_FIELD,
+                'type' => CustomFieldTypes::JSON,
+                'config' => [
+                    'label' => ['en-GB' => 'Orders of the same checkout (group, orders)', 'de-DE' => 'Bestellungen desselben Checkouts (group, orders)'],
+                    'componentName' => 'sw-code-editor',
+                ],
+            ]],
         ]], $context);
     }
 
     public function uninstall(Context $context): void
     {
-        $this->customFieldSetRepository->delete([['id' => Uuid::fromStringToHex(self::SET_NAME . '.set')]], $context);
+        $this->customFieldSetRepository->delete([
+            ['id' => Uuid::fromStringToHex(self::SET_NAME . '.set')],
+            ['id' => Uuid::fromStringToHex(self::ORDER_SET_NAME . '.set')],
+        ], $context);
     }
 }

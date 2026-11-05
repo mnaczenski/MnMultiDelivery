@@ -3,11 +3,11 @@
   "entryPoints": {
     "mn-multi-delivery": {
       "css": [
-        "/bundles/mnmultidelivery/administration/assets/mn-multi-delivery-GU8s25Cz.css"
+        "/bundles/mnmultidelivery/administration/assets/mn-multi-delivery-gLReHJxI.css"
       ],
       "dynamic": [],
       "js": [
-        "/bundles/mnmultidelivery/administration/assets/mn-multi-delivery-Dn7L6JMw.js"
+        "/bundles/mnmultidelivery/administration/assets/mn-multi-delivery-D-pgo4Tk.js"
       ],
       "legacy": false,
       "preload": []

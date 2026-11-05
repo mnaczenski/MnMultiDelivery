@@ -1,0 +1,20 @@
+{% sw_extends '@Storefront/storefront/page/checkout/finish/index.html.twig' %}
+
+{#
+    Separate orders (deliveries to other countries): show every order of the
+    checkout with its items, address and totals, not only the main order.
+#}
+{% block page_checkout_finish_product_table %}
+    {% set mnSeparate = page.extensions.mnSeparateOrders|default(null) %}
+    {% if mnSeparate and mnSeparate.orders|length > 1 %}
+        {% for mnOrder in mnSeparate.orders %}
+            {% sw_include '@Storefront/storefront/component/mn-multi-delivery/finish-order.html.twig' with {
+                mnOrder: mnOrder,
+                showTaxPrice: config('core.cart.columnTaxInsteadUnitPrice'),
+                showSubtotal: config('core.cart.showSubtotal'),
+            } %}
+        {% endfor %}
+    {% else %}
+        {{ parent() }}
+    {% endif %}
+{% endblock %}

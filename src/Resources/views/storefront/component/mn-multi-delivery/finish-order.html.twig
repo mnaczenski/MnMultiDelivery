@@ -1,0 +1,62 @@
+{#
+    One order of a checkout with separate orders on the finish page: number,
+    country, delivery address, shipping and payment method, items and total.
+#}
+{% block component_mn_multi_delivery_finish_order %}
+    {% set mnDelivery = mnOrder.deliveries.first|default(null) %}
+    {% set mnAddress = mnDelivery ? mnDelivery.shippingOrderAddress : null %}
+    {% set mnTransaction = mnOrder.transactions.last|default(null) %}
+    <section class="card checkout-product-table mn-md-finish-order">
+        <div class="card-body">
+            {% block component_mn_multi_delivery_finish_order_header %}
+                <h2 class="card-title mn-md-finish-order-title">
+                    {{ 'mnMultiDelivery.separate.finishOrderHeading'|trans({
+                        '%number%': mnOrder.orderNumber,
+                        '%country%': mnAddress ? mnAddress.country.translated.name : '',
+                    })|sw_sanitize }}
+                </h2>
+            {% endblock %}
+
+            {% block component_mn_multi_delivery_finish_order_meta %}
+                <div class="row mn-md-finish-order-meta">
+                    {% if mnAddress %}
+                        <div class="col-md-6">
+                            <strong>{{ 'mnMultiDelivery.address'|trans|sw_sanitize }}</strong>
+                            {% sw_include '@Storefront/storefront/component/address/address.html.twig' with { address: mnAddress } %}
+                        </div>
+                    {% endif %}
+                    <div class="col-md-6">
+                        {% if mnDelivery %}
+                            <p><strong>{{ 'mnMultiDelivery.shippingMethod'|trans|sw_sanitize }}:</strong> {{ mnDelivery.shippingMethod.translated.name }}</p>
+                        {% endif %}
+                        {% if mnTransaction %}
+                            <p><strong>{{ 'mnMultiDelivery.separate.paymentMethod'|trans|sw_sanitize }}:</strong> {{ mnTransaction.paymentMethod.translated.distinguishableName ?: mnTransaction.paymentMethod.translated.name }}</p>
+                        {% endif %}
+                        <p><strong>{{ 'mnMultiDelivery.separate.orderTotal'|trans|sw_sanitize }}:</strong> {{ mnOrder.amountTotal|currency(mnOrder.currency.isoCode) }}</p>
+                    </div>
+                </div>
+            {% endblock %}
+        </div>
+
+        {% block component_mn_multi_delivery_finish_order_items %}
+            <ul class="card-body list-unstyled">
+                {% sw_include '@Storefront/storefront/component/checkout/cart-header.html.twig' with {
+                    showTaxPrice: showTaxPrice,
+                    showRemoveColumn: false,
+                    showSubtotal: showSubtotal
+                } %}
+                {% for lineItem in mnOrder.nestedLineItems %}
+                    {% sw_include '@Storefront/storefront/component/line-item/line-item.html.twig' with {
+                        lineItem: lineItem,
+                        redirectTo: 'frontend.checkout.confirm.page',
+                        showTaxPrice: showTaxPrice,
+                        showRemoveButton: false,
+                        showSubtotal: showSubtotal,
+                        displayMode: 'order',
+                        order: mnOrder
+                    } %}
+                {% endfor %}
+            </ul>
+        {% endblock %}
+    </section>
+{% endblock %}

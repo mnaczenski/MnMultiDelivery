@@ -19,10 +19,12 @@ Lets customers split one order into several deliveries on the checkout confirm p
   - *By delivery time* (`deliveryTime`): one delivery per delivery-time band ("1–3 days", "2–3 weeks", backorders).
   - *By warehouse* (`warehouse`): one delivery per warehouse, using the same allocation logic as SwagCommercial Multi-Warehouse. Shown only when warehouses exist.
 - **Adjusting automatic splits.** After an availability or delivery-time split, customers can still move items between the deliveries, and reset to the automatic split.
+- **Deliveries to other countries** (optional): a delivery to an address in another country is placed as a separate order, which Shopware calculates for that country (VAT, prices, shipping rules). See [Deliveries to other countries](#deliveries-to-other-countries).
 - **Merchant settings** per sales channel: which rules are offered, the default rule, automatic splitting, delivery-time grouping, and the shipping costs of additional deliveries (charge each, free, or capped at a flat price).
 - **Order**: one `order_delivery` per delivery, each with its own address. The delivery's group, label and warehouse are stored in `customFields.mn_multi_delivery`.
 - **After the order**
   - The finish page and the customer account list every delivery.
+  - With separate orders, the finish page shows every order of the checkout in full: address, shipping and payment method, items and totals.
   - The order confirmation mail lists every delivery with its address.
   - The admin order page has a *Deliveries* tab with status, tracking codes and a delivery note per delivery.
   - B2B order approval pages show the planned deliveries.
@@ -62,8 +64,25 @@ The storefront JavaScript (`src/Resources/app/storefront/dist`) and the administ
 | Delivery time: maximum deliveries | 3 | Once the limit is reached, the latest items ship together. |
 | Shipping costs of additional deliveries | charge each | *free*, or *flat*, where the flat price is a cap and never raises a price. The most expensive delivery is always charged normally. |
 | Maximum price per additional delivery | 4.90 | Gross; net customers pay it without tax. |
+| Deliveries to addresses in another country | only the same country | *Separate orders*: a delivery to another country is placed as an order of its own. See [Deliveries to other countries](#deliveries-to-other-countries). |
+| Payment handlers that allow separate orders | Shopware's invoice, prepayment, cash on delivery, direct debit and default handlers | Partial class names, one per line. Only the main order goes through the payment step, so only methods without an online payment step belong here. |
 
 The delivery-time rule uses the delivery time and restock time you set on products. Without them, every item has the shipping method's delivery time and the rule produces one delivery.
+
+## Deliveries to other countries
+
+By default deliveries stay in the order's shipping country, because Shopware calculates taxes for one country per order. With **Deliveries to addresses in another country = Support orders from different countries (separate orders)** customers can also pick addresses in other countries:
+
+- Each delivery to another country becomes a **separate order** when the customer confirms. Deliveries within the shipping country stay in the main order.
+- Shopware calculates every separate order for its own address: VAT, tax-free rules, country prices, shipping rules. The confirm page summary shows each order's totals and the sum of all orders.
+- Every order has its own number, confirmation mail, invoice, delivery note and states, so ERP, shipping and accounting tools see ordinary one-country orders.
+- **Payment:** each order is paid on its own and only the main order goes through the payment step. Separate orders are therefore only offered with the payment handlers in *Payment handlers that allow separate orders*; with other methods foreign addresses are not offered and the planner says why.
+- **Promotions and vouchers** stay on the main order. Minimum order values and rules are checked per order.
+- **Placing:** every order is calculated first; if one has an error that blocks ordering, nothing is placed and the confirm page shows `error.MN_MULTI_DELIVERY__SEPARATE_ORDER_INVALID`. If placing still fails halfway, the orders already placed are cancelled (their confirmation mails may already be out). Separate orders are placed first, the main order last, and the main order is what the storefront and Store API return. If every delivery goes abroad, the last separate order takes that place.
+- The orders of one checkout are linked in the order custom field `mn_multi_delivery_orders` (`group`, `orders[]` with `id`, `orderNumber`, `country`, `countryIso`, `amountTotal`, `currencyIso`).
+- **Finish page:** every order of the checkout is shown in full (address, shipping and payment method, items), and the summary lists each order's totals and the sum. Only orders of the logged-in customer are loaded. The customer account lists the linked orders on each order's details.
+- **Cart storage:** the main order and every separate order are calculated as copies with tokens of their own, never the customer's cart token. Shopware stores a cart while calculating it when product data was reloaded; those copies are deleted right away, so previews never change the customer's cart.
+- With an automatic rule, the items that remain in the main order are split again by that rule.
 
 ## Order confirmation mail
 
@@ -109,7 +128,8 @@ All routes need a logged-in customer (guests included) and use the same logic as
 | `moveTargets` | the [group ids](#delivery-groups) items can be moved to |
 | `groupNumbers` | the display number per group id |
 | `shippingCountryId` | the shipping country |
-| `addressIds` | the addresses a delivery may use |
+| `addressIds` | the addresses a delivery may use; with separate orders also addresses in other countries |
+| `separateOrders` | deliveries to other countries: `enabled`, `paymentAllowed`, `totalPrice`, and `orders`, one entry per order the checkout will place (separate orders first, the main order last) with `main`, `groupId`, `addressId`, `countryId`, `lineItems` (quantity per cart item), `positionPrice`, `shippingCosts`, `netPrice`, `totalPrice`, `taxStatus`, `calculatedTaxes`, `blockingErrors`. Empty `orders` when the cart has no delivery abroad. |
 
 **Behavior**
 - Each delivery in the cart response carries `extensions.mnDeliveryGroup.groupId`.
@@ -117,6 +137,7 @@ All routes need a logged-in customer (guests included) and use the same logic as
 - Input that doesn't fit has no effect: an unknown rule, group or line item, or an address the [address policies](#blocking-addresses-shipping-costs) reject. The address is still stored, but the delivery keeps the shipping address. Move quantities are capped at what the delivery holds.
 - When splitting is turned off for the sales channel, every change returns the unchanged cart.
 - An unknown action returns 404.
+- `POST /store-api/checkout/order` places separate orders like the storefront and returns the main order (or, if every delivery goes abroad, the last separate order). The other orders are in its `customFields.mn_multi_delivery_orders`. Pay every order whose payment is still open; only offline payment handlers are allowed for separate orders.
 
 ## How it works
 
@@ -135,11 +156,14 @@ On every cart calculation, `SplitDeliveryProcessor` runs at priority −5050, af
 6. `SplitDeliveriesBuiltEvent` is dispatched. With fewer than two deliveries left, Shopware's single delivery stays.
 7. `PromotionDeliveryProcessor` (−5100) applies shipping discounts to the final deliveries.
 
+With separate orders enabled, the address policy also accepts addresses in other countries. On the confirm page and in the Store API, `SeparateOrderSplitter` divides the calculated cart along its deliveries (every delivery abroad becomes a cart of its own) and `SeparateOrderCalculator` calculates each with a context for its address. When the order is placed, `SeparateOrderCartOrderRoute` (a decorator of Shopware's `CartOrderRoute`) checks the cart hash once, places the separate orders and then the main order through Shopware's own route, links them and dispatches `SeparateOrdersPlacedEvent`.
+
 Shopware's `OrderConverter` writes one `order_delivery` per cart delivery. The primary delivery is the one with the highest shipping costs. The cart hash submitted with the order includes the delivery layout, so a plan changed in another tab is noticed like any other cart change.
 
 ## Limitations
 
-- **Deliveries stay in the shipping country.** Shopware calculates taxes for one country per order. A delivery to another country would be taxed, and reported for OSS, as the main shipping country.
+- **Deliveries stay in the shipping country** unless separate orders are switched on (see [Deliveries to other countries](#deliveries-to-other-countries)). Shopware calculates taxes for one country per order, so a delivery to another country can't be part of the same order.
+- **Separate orders need a payment method without an online payment step**, because only the main order goes through the payment step.
 - **PayPal** (default setting): splitting is off, because PayPal receives only one shipping option.
 - **Admin order editing and creation** never split. Existing deliveries are kept as they are.
 - **Guests** only have the addresses they entered at checkout, so they can split by rule or shipping method but rarely send deliveries to different addresses.
@@ -162,7 +186,8 @@ The [example project plugin](examples/MnMultiDeliveryExample) shows most of thes
 | decide which addresses a delivery may use | `DeliveryAddressPolicyInterface`, tag `mn.multi_delivery.address_policy` |
 | price additional deliveries differently | decorate `ShippingCostPolicyInterface` |
 | react to the customer's changes | `DeliveryPlanChangedEvent` |
-| add data to the order deliveries | `SplitOrderConvertedEvent` |
+| add data to the order deliveries | `SeparateOrdersPlacedEvent` | after a checkout placed separate orders for deliveries to other countries and linked them | read `getOrderGroupId()`, `getOrders()` (main order last) |
+| `SplitOrderConvertedEvent` |
 | change the Store API | decorate `AbstractDeliveryPlanRoute` |
 | use the split in shipping prices, promotions or flows | Rule Builder condition `mnMultiDeliveryCount` |
 | change the planner or the delivery overview | [Twig blocks](#storefront), snippets |
@@ -295,9 +320,15 @@ Customize the templates with `{% sw_extends %}` and these blocks. Keep the form 
   - `_item_settings`, `_item_address`, `_item_shipping_method`
   - `_item_positions`, `_item_position`, `_item_position_label`, `_item_position_move`
   - `_item_remove`, `_empty_item`, `_hint`, `_actions`
+  - `_item_separate_order` (the "Separate order · country" badge of a delivery abroad)
 
   Inside a delivery the variables `delivery`, `info` (`mnDeliveryGroup`), `groupId`, `groupNumber` and `settings` are available.
 - **Overview** on the finish page, the account and the approval pages, `@Storefront/storefront/component/mn-multi-delivery/delivery-overview.html.twig`: `component_mn_delivery_overview`, with `_heading`, `_item`, `_item_summary`, `_item_address`, `_item_positions`.
+- **Separate orders** (deliveries to other countries):
+  - Summary on the confirm and finish pages, `@Storefront/storefront/page/checkout/summary.html.twig`: `page_checkout_summary_mn_separate_order` (one order's totals, variables `mnOrder` and `summary`) and `page_checkout_summary_mn_separate_total` (sum of all orders).
+  - One order on the finish page, `@Storefront/storefront/component/mn-multi-delivery/finish-order.html.twig`: `component_mn_multi_delivery_finish_order`, with `_header`, `_meta`, `_items`; variable `mnOrder`.
+  - List of the linked orders on the finish page and the account's order details, `@Storefront/storefront/component/mn-multi-delivery/separate-orders.html.twig`: `component_mn_multi_delivery_separate_orders`; variable `order`.
+  - Page data: on the confirm page `page.extensions.mnMultiDelivery.separateOrders` (as in the Store API, plus `cart` and `country` per order); on the finish page `page.extensions.mnSeparateOrders` with `orders` (all orders, main order last), `others` and `totalPrice`.
 
 The storefront plugin `MnMultiDelivery` sits on `[data-mn-multi-delivery]`. Its options (`data-mn-multi-delivery-options`):
 - `updatingText` and `updatedText`
@@ -333,7 +364,10 @@ In the plain-text version, end every text line with output (`{{ }}`), not a tag:
 
 - **Cart:** the `mnDeliveryPlan` extension (`DeliveryPlan`): `enabled`, `strategy`, settings per group, manual assignments, added groups, and adjustments per rule. Each cart delivery has the `mnDeliveryGroup` extension (`DeliveryGroupInfo`): `groupId`, `label`, `locked`, `warehouseId`, `warehouseName`.
 - **Order:** `order_delivery.customFields.mn_multi_delivery` holds `group`, `label`, `warehouseId` and `warehouseName`. It is registered as the custom field set *Multi Delivery*.
-- **Snippets:** `mnMultiDelivery.*` (storefront and mail), `mn-multi-delivery.*` (administration).
+- **Order (separate orders):** `order.customFields.mn_multi_delivery_orders` holds `group` and `orders[]` (`id`, `orderNumber`, `country`, `countryIso`, `amountTotal`, `currencyIso`) on every order of the checkout. It is registered as the custom field set *Multi Delivery – orders placed together*.
+- **Settings:** `MnMultiDelivery.config.countryMode` (`sameCountry`, `separateOrders`) and `MnMultiDelivery.config.separateOrderPaymentHandlers`, besides the settings in [Configuration](#configuration).
+- **Errors:** `MultiDeliveryException` (extends `CartException`) with `MN_MULTI_DELIVERY__SEPARATE_ORDER_PAYMENT` and `MN_MULTI_DELIVERY__SEPARATE_ORDER_INVALID`; the storefront shows the snippets `error.<code>`.
+- **Snippets:** `mnMultiDelivery.*` (storefront and mail, separate orders under `mnMultiDelivery.separate.*`), `mn-multi-delivery.*` (administration, the settings explanation under `mn-multi-delivery.countryMode.*`).
 
 #### Delivery groups
 
