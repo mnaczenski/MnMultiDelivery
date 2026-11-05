@@ -1,0 +1,23 @@
+{#
+    Delivery list of the order confirmation mail (HTML). Added to the mail
+    template when the mail is sent; see MailBlock. Override it by shipping
+    the same path in your own plugin or theme:
+    Resources/views/mn-multi-delivery/mail/order-deliveries.html.twig
+
+    Variables: order, currencyIsoCode, mnDeliveryTexts (texts from the snippets
+    mnMultiDelivery.mail.*).
+#}
+{% if order.deliveries|length > 1 %}
+    <strong>{{ mnDeliveryTexts.heading|replace({'%count%': order.deliveries|length}) }}</strong><br>
+    {% for splitDelivery in order.deliveries %}
+        {% set splitInfo = splitDelivery.customFields.mn_multi_delivery|default(null) %}
+        {% set splitAddress = splitDelivery.shippingOrderAddress %}
+        <br><strong>{{ mnDeliveryTexts.delivery }} {{ loop.index }}</strong>{% if splitInfo and splitInfo.warehouseName %} · {{ mnDeliveryTexts.shipsFrom }} {{ splitInfo.warehouseName }}{% endif %}<br>
+        {{ mnDeliveryTexts.expected }}: {{ splitDelivery.shippingDateEarliest|date('d.m.Y') }} – {{ splitDelivery.shippingDateLatest|date('d.m.Y') }} · {{ splitDelivery.shippingMethod.translated.name }} · {{ splitDelivery.shippingCosts.totalPrice|currency(currencyIsoCode) }}<br>
+        {% if splitAddress %}{{ mnDeliveryTexts.deliverTo }}: {{ splitAddress.firstName }} {{ splitAddress.lastName }}, {{ splitAddress.street }}, {{ splitAddress.zipcode }} {{ splitAddress.city }}<br>{% endif %}
+        {% for splitPosition in splitDelivery.positions|default([]) %}
+            &nbsp;&nbsp;{{ splitPosition.quantity }} × {{ splitPosition.orderLineItem.label|default('') }}<br>
+        {% endfor %}
+    {% endfor %}
+    <br>
+{% endif %}

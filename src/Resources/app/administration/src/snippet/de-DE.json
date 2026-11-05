@@ -1,0 +1,18 @@
+{
+    "mn-multi-delivery": {
+        "tab": "Lieferungen",
+        "delivery": "Lieferung",
+        "shipsFrom": "Versand aus",
+        "address": "Lieferung an",
+        "shipping": "Versand",
+        "items": "Artikel",
+        "changeState": "Lieferstatus ändern",
+        "tracking": "Sendungsnummern (durch Komma getrennt)",
+        "saveTracking": "Sendungsnummern speichern",
+        "createNote": "Lieferschein erstellen",
+        "stateChanged": "Lieferstatus geändert.",
+        "trackingSaved": "Sendungsnummern gespeichert.",
+        "noteCreated": "Lieferschein erstellt. Sie finden ihn unter Dokumente.",
+        "ruleDeliveryCount": "Anzahl Lieferungen (Mehrfachlieferung)"
+    }
+}

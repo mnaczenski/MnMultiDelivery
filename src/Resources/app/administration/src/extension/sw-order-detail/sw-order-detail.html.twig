@@ -1,0 +1,12 @@
+{% block sw_order_detail_content_tabs_extension %}
+    {% parent %}
+
+    <sw-tabs-item
+        v-if="mnHasSplitDeliveries"
+        class="sw-order-detail__tabs-tab-mn-md-deliveries"
+        :route="{ name: 'mn.multi.delivery.order.detail.deliveries', params: { id: $route.params.id } }"
+        :title="$t('mn-multi-delivery.tab')"
+    >
+        {{ $t('mn-multi-delivery.tab') }} ({{ order.deliveries.length }})
+    </sw-tabs-item>
+{% endblock %}

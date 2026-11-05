@@ -1,0 +1,13 @@
+{% sw_extends '@Storefront/storefront/page/checkout/finish/finish-details.html.twig' %}
+
+{% block page_checkout_finish_order %}
+    {{ parent() }}
+
+    {% if page.order.deliveries|default([])|length > 1 %}
+        <section class="card checkout-card mn-md-finish">
+            <div class="card-body">
+                {% sw_include '@Storefront/storefront/component/mn-multi-delivery/delivery-overview.html.twig' with { deliveries: page.order.deliveries } %}
+            </div>
+        </section>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,11 @@
+{
+  "main.js": {
+    "file": "assets/mn-multi-delivery-Dn7L6JMw.js",
+    "name": "mn-multi-delivery",
+    "src": "main.js",
+    "isEntry": true,
+    "css": [
+      "assets/mn-multi-delivery-GU8s25Cz.css"
+    ]
+  }
+}

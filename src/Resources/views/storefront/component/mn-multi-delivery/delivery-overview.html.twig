@@ -1,0 +1,52 @@
+{#
+    Lists every delivery of an order or a (pending) cart. Works with order
+    deliveries (shippingOrderAddress, orderLineItem) and cart deliveries
+    (location.address, lineItem). Renders nothing for a single delivery.
+
+    Customise it with
+    {% sw_extends '@Storefront/storefront/component/mn-multi-delivery/delivery-overview.html.twig' %}
+    and the blocks below.
+#}
+{% block component_mn_delivery_overview %}
+    {% set mnDeliveries = deliveries|default([]) %}
+    {% if mnDeliveries|length > 1 %}
+        <div class="mn-md-overview">
+            {% block component_mn_delivery_overview_heading %}
+                <div class="mn-md-overview-heading">{{ 'mnMultiDelivery.finishHeading'|trans }}</div>
+            {% endblock %}
+            <ol class="mn-md-finish-list">
+                {% for delivery in mnDeliveries %}
+                    {% set mnAddress = delivery.shippingOrderAddress|default(delivery.location.address|default(null)) %}
+                    {% set mnEarliest = delivery.shippingDateEarliest|default(delivery.deliveryDate.earliest|default(null)) %}
+                    {% set mnLatest = delivery.shippingDateLatest|default(delivery.deliveryDate.latest|default(null)) %}
+                    {% set mnGroup = delivery.customFields.mn_multi_delivery|default(delivery.extensions.mnDeliveryGroup|default(null)) %}
+                    {% set mnWarehouse = mnGroup.warehouseName|default(null) %}
+                    {% block component_mn_delivery_overview_item %}
+                        <li class="mn-md-finish-item">
+                            {% block component_mn_delivery_overview_item_summary %}
+                                <strong>{% if mnWarehouse %}{{ 'mnMultiDelivery.shipsFrom'|trans }} {{ mnWarehouse }}{% else %}{{ 'mnMultiDelivery.delivery'|trans }} {{ loop.index }}{% endif %}</strong>
+                                {% if mnEarliest %} · {{ mnEarliest|format_date('medium', locale=app.request.locale) }}{% if mnLatest %} – {{ mnLatest|format_date('medium', locale=app.request.locale) }}{% endif %}{% endif %}
+                                {% if delivery.shippingMethod %} · {{ delivery.shippingMethod.translated.name }}{% endif %}
+                                {% if delivery.shippingCosts %} · {{ delivery.shippingCosts.totalPrice|currency }}{% endif %}
+                            {% endblock %}
+                            {% block component_mn_delivery_overview_item_address %}
+                                {% if mnAddress %}
+                                    <br><span class="mn-md-finish-address">{{ mnAddress.firstName }} {{ mnAddress.lastName }}, {{ mnAddress.street }}, {{ mnAddress.zipcode }} {{ mnAddress.city }}</span>
+                                {% endif %}
+                            {% endblock %}
+                            {% block component_mn_delivery_overview_item_positions %}
+                                {% if delivery.positions and delivery.positions|length > 0 %}
+                                    <ul class="mn-md-finish-positions">
+                                        {% for position in delivery.positions %}
+                                            <li>{{ position.quantity }} × {{ position.orderLineItem.label|default(position.lineItem.label|default('')) }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+                            {% endblock %}
+                        </li>
+                    {% endblock %}
+                {% endfor %}
+            </ol>
+        </div>
+    {% endif %}
+{% endblock %}

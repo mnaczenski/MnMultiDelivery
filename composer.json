@@ -1,0 +1,38 @@
+{
+    "name": "mn/multi-delivery",
+    "description": "Multi Delivery - several deliveries per order, each with its own address and shipping method, split by the customer or by rules",
+    "type": "shopware-platform-plugin",
+    "version": "1.0.0",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "mn"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "shopware/core": "~6.7.0",
+        "shopware/storefront": "~6.7.0"
+    },
+    "extra": {
+        "shopware-plugin-class": "Mn\\MultiDelivery\\MnMultiDelivery",
+        "label": {
+            "de-DE": "Mehrfachlieferung",
+            "en-GB": "Multi Delivery"
+        },
+        "description": {
+            "de-DE": "Mehrere Lieferungen pro Bestellung mit eigener Adresse und Versandart: selbst gewählt, nach Verfügbarkeit, Lieferzeit oder Lager. Mit Store API.",
+            "en-GB": "Several deliveries per order, each with its own address and shipping method: chosen by the customer, by availability, delivery time or warehouse. Includes a Store API."
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Mn\\MultiDelivery\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Mn\\MultiDelivery\\Tests\\": "tests/"
+        }
+    }
+}

@@ -1,0 +1,60 @@
+{
+    "mnMultiDelivery": {
+        "heading": "Lieferungen",
+        "intro": "Lassen Sie Ihre Bestellung in mehreren Teilen liefern – an verschiedene Adressen oder sobald Artikel bereit sind.",
+        "toggle": "In mehrere Lieferungen aufteilen",
+        "toggleOff": "Alles zusammen liefern",
+        "strategy": "Wie sollen wir aufteilen?",
+        "strategies": {
+            "manual": "Selbst festlegen",
+            "availability": "Nach Verfügbarkeit",
+            "warehouse": "Nach Lager",
+            "deliveryTime": "Nach Lieferzeit"
+        },
+        "strategyHints": {
+            "manual": "Verschieben Sie Artikel zwischen Lieferungen und wählen Sie je eine Adresse.",
+            "availability": "Lagernde Artikel kommen sofort, der Rest sobald verfügbar.",
+            "warehouse": "Jedes Lager versendet seine Artikel getrennt.",
+            "deliveryTime": "Artikel mit ähnlicher Lieferzeit kommen zusammen."
+        },
+        "delivery": "Lieferung",
+        "groups": {
+            "main": "Lieferung 1",
+            "now": "Sofort lieferbar",
+            "later": "Folgt später"
+        },
+        "shipsFrom": "Versand aus",
+        "address": "Lieferung an",
+        "addressDefault": "Lieferadresse",
+        "shippingMethod": "Versandart",
+        "shippingDefault": "Gewählte Versandart",
+        "arrives": "Voraussichtliche Lieferung",
+        "costs": "Versand",
+        "items": "Artikel",
+        "moveTo": "Verschieben nach",
+        "moveQuantity": "Menge",
+        "move": "Verschieben",
+        "addDelivery": "Lieferung hinzufügen",
+        "removeDelivery": "Diese Lieferung entfernen",
+        "save": "Übernehmen",
+        "blocked": {
+            "payment": "Mehrere Lieferungen sind mit der gewählten Zahlungsart nicht möglich.",
+            "quote": "Angebote werden wie vereinbart geliefert.",
+            "subscription": "Abonnements werden in einer Sendung geliefert.",
+            "recalculation": "Diese Bestellung kann nicht aufgeteilt werden.",
+            "empty": ""
+        },
+        "finishHeading": "Ihre Lieferungen",
+        "updating": "Lieferungen werden aktualisiert …",
+        "updated": "Lieferungen aktualisiert",
+        "countryHint": "Lieferungen können an jede Ihrer Adressen in %country% gehen. Steuern werden pro Bestellung für ein Land berechnet.",
+        "reset": "Zurück zur automatischen Aufteilung",
+        "mail": {
+            "heading": "Ihre Bestellung kommt in %count% Lieferungen:",
+            "delivery": "Lieferung",
+            "shipsFrom": "Versand aus",
+            "deliverTo": "Lieferung an",
+            "expected": "Voraussichtlich"
+        }
+    }
+}

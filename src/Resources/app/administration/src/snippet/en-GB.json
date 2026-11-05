@@ -1,0 +1,18 @@
+{
+    "mn-multi-delivery": {
+        "tab": "Deliveries",
+        "delivery": "Delivery",
+        "shipsFrom": "Ships from",
+        "address": "Deliver to",
+        "shipping": "Shipping",
+        "items": "Items",
+        "changeState": "Change delivery status",
+        "tracking": "Tracking codes (comma separated)",
+        "saveTracking": "Save tracking",
+        "createNote": "Create delivery note",
+        "stateChanged": "Delivery status changed.",
+        "trackingSaved": "Tracking codes saved.",
+        "noteCreated": "Delivery note created. You'll find it under Documents.",
+        "ruleDeliveryCount": "Number of deliveries (Multi Delivery)"
+    }
+}

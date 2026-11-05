@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/shopware/shopware/trunk/src/Core/System/SystemConfig/Schema/config.xsd">
+    <card>
+        <title>Multi Delivery</title>
+        <title lang="de-DE">Mehrfachlieferung</title>
+        <input-field type="bool">
+            <name>enabled</name>
+            <label>Let customers split their order into several deliveries on the confirm page</label>
+            <label lang="de-DE">Kunden können ihre Bestellung auf der Bestellbestätigungsseite in mehrere Lieferungen aufteilen</label>
+            <defaultValue>false</defaultValue>
+        </input-field>
+        <input-field type="textarea">
+            <name>blockedPaymentHandlers</name>
+            <label>Payment handlers that keep a single delivery (one per line, partial class names)</label>
+            <label lang="de-DE">Zahlungs-Handler mit nur einer Lieferung (einer pro Zeile, Teil des Klassennamens)</label>
+            <helpText>PayPal sends only the first delivery's shipping cost as the selected shipping option, which PayPal can reject.</helpText>
+            <helpText lang="de-DE">PayPal übermittelt nur die Versandkosten der ersten Lieferung als gewählte Versandoption, was PayPal ablehnen kann.</helpText>
+            <defaultValue>Swag\PayPal</defaultValue>
+        </input-field>
+    </card>
+
+    <card>
+        <title>Splitting rules</title>
+        <title lang="de-DE">Aufteilungsregeln</title>
+        <input-field type="multi-select">
+            <name>strategies</name>
+            <label>Rules customers can choose</label>
+            <label lang="de-DE">Regeln, die Kunden wählen können</label>
+            <helpText>Leave empty to offer all rules. Rules added by other plugins are always offered.</helpText>
+            <helpText lang="de-DE">Leer lassen, um alle Regeln anzubieten. Regeln anderer Plugins werden immer angeboten.</helpText>
+            <options>
+                <option>
+                    <id>manual</id>
+                    <name>I'll choose myself (customer moves items)</name>
+                    <name lang="de-DE">Selbst wählen (Kunde verschiebt Artikel)</name>
+                </option>
+                <option>
+                    <id>availability</id>
+                    <name>By availability (now / later)</name>
+                    <name lang="de-DE">Nach Verfügbarkeit (jetzt / später)</name>
+                </option>
+                <option>
+                    <id>deliveryTime</id>
+                    <name>By delivery time (one delivery per delivery-time band)</name>
+                    <name lang="de-DE">Nach Lieferzeit (eine Lieferung pro Lieferzeit)</name>
+                </option>
+                <option>
+                    <id>warehouse</id>
+                    <name>By warehouse (needs Commercial Multi-Warehouse)</name>
+                    <name lang="de-DE">Nach Lager (benötigt Commercial Multi-Warehouse)</name>
+                </option>
+            </options>
+        </input-field>
+        <input-field type="single-select">
+            <name>defaultStrategy</name>
+            <label>Default rule</label>
+            <label lang="de-DE">Standardregel</label>
+            <defaultValue>manual</defaultValue>
+            <options>
+                <option>
+                    <id>manual</id>
+                    <name>I'll choose myself (customer moves items)</name>
+                    <name lang="de-DE">Selbst wählen (Kunde verschiebt Artikel)</name>
+                </option>
+                <option>
+                    <id>availability</id>
+                    <name>By availability (now / later)</name>
+                    <name lang="de-DE">Nach Verfügbarkeit (jetzt / später)</name>
+                </option>
+                <option>
+                    <id>deliveryTime</id>
+                    <name>By delivery time (one delivery per delivery-time band)</name>
+                    <name lang="de-DE">Nach Lieferzeit (eine Lieferung pro Lieferzeit)</name>
+                </option>
+                <option>
+                    <id>warehouse</id>
+                    <name>By warehouse (needs Commercial Multi-Warehouse)</name>
+                    <name lang="de-DE">Nach Lager (benötigt Commercial Multi-Warehouse)</name>
+                </option>
+            </options>
+        </input-field>
+        <input-field type="bool">
+            <name>autoSplit</name>
+            <label>Split automatically with the default rule</label>
+            <label lang="de-DE">Automatisch mit der Standardregel aufteilen</label>
+            <helpText>Customers see the split on the confirm page and can still ship everything together.</helpText>
+            <helpText lang="de-DE">Kunden sehen die Aufteilung auf der Bestellbestätigungsseite und können trotzdem alles zusammen versenden.</helpText>
+            <defaultValue>false</defaultValue>
+        </input-field>
+        <input-field type="int">
+            <name>deliveryTimeGroupDays</name>
+            <label>Delivery time: ship together if dates start within (days)</label>
+            <label lang="de-DE">Lieferzeit: zusammen versenden, wenn die Termine höchstens so viele Tage auseinanderliegen</label>
+            <defaultValue>2</defaultValue>
+            <min>0</min>
+        </input-field>
+        <input-field type="int">
+            <name>deliveryTimeMaxDeliveries</name>
+            <label>Delivery time: maximum number of deliveries</label>
+            <label lang="de-DE">Lieferzeit: maximale Anzahl Lieferungen</label>
+            <helpText>The latest items ship together once the limit is reached.</helpText>
+            <helpText lang="de-DE">Ist das Limit erreicht, werden die spätesten Artikel zusammen versendet.</helpText>
+            <defaultValue>3</defaultValue>
+            <min>2</min>
+        </input-field>
+    </card>
+
+    <card>
+        <title>Shipping costs</title>
+        <title lang="de-DE">Versandkosten</title>
+        <input-field type="single-select">
+            <name>extraDeliveryCosts</name>
+            <label>Shipping costs of additional deliveries</label>
+            <label lang="de-DE">Versandkosten weiterer Lieferungen</label>
+            <helpText>The most expensive delivery is always charged normally.</helpText>
+            <helpText lang="de-DE">Die teuerste Lieferung wird immer normal berechnet.</helpText>
+            <defaultValue>each</defaultValue>
+            <options>
+                <option>
+                    <id>each</id>
+                    <name>Charge every delivery by its shipping method</name>
+                    <name lang="de-DE">Jede Lieferung nach ihrer Versandart berechnen</name>
+                </option>
+                <option>
+                    <id>free</id>
+                    <name>Additional deliveries are free</name>
+                    <name lang="de-DE">Weitere Lieferungen sind kostenlos</name>
+                </option>
+                <option>
+                    <id>flat</id>
+                    <name>Additional deliveries cost at most a flat price</name>
+                    <name lang="de-DE">Weitere Lieferungen kosten höchstens einen Pauschalpreis</name>
+                </option>
+            </options>
+        </input-field>
+        <input-field type="float">
+            <name>extraDeliveryFlatPrice</name>
+            <label>Maximum price per additional delivery (gross)</label>
+            <label lang="de-DE">Höchstpreis pro weiterer Lieferung (brutto)</label>
+            <defaultValue>4.9</defaultValue>
+            <min>0</min>
+        </input-field>
+    </card>
+</config>

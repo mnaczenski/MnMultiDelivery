@@ -1,0 +1,25 @@
+{
+  "base": "/bundles/mnmultidelivery/administration/",
+  "entryPoints": {
+    "mn-multi-delivery": {
+      "css": [
+        "/bundles/mnmultidelivery/administration/assets/mn-multi-delivery-GU8s25Cz.css"
+      ],
+      "dynamic": [],
+      "js": [
+        "/bundles/mnmultidelivery/administration/assets/mn-multi-delivery-Dn7L6JMw.js"
+      ],
+      "legacy": false,
+      "preload": []
+    }
+  },
+  "legacy": false,
+  "metadatas": {},
+  "version": [
+    "7.1.0",
+    7,
+    1,
+    0
+  ],
+  "viteServer": null
+}

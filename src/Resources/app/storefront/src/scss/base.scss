@@ -1,0 +1,188 @@
+/*
+Multi Delivery
+==================================================
+Neutral styles; themes can restyle the .mn-md-* classes.
+*/
+
+.mn-md {
+    margin-bottom: 1.5rem;
+}
+
+.mn-md-intro,
+.mn-md-note {
+    color: $gray-600;
+}
+
+.mn-md-legend {
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.mn-md-strategy-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.mn-md-strategy-option {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+    cursor: pointer;
+
+    input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    &.is-active {
+        border-color: $primary;
+        box-shadow: inset 0 0 0 1px $primary;
+    }
+}
+
+.mn-md-strategy-name {
+    font-weight: 600;
+}
+
+.mn-md-strategy-hint {
+    font-size: 0.85rem;
+    color: $gray-600;
+}
+
+.mn-md-delivery {
+    display: grid;
+    gap: 1rem;
+}
+
+.mn-md-delivery {
+    padding: 1rem 1.1rem;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+
+    &.is-empty {
+        border-style: dashed;
+    }
+}
+
+.mn-md-delivery-head {
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+}
+
+.mn-md-delivery-number {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 50%;
+    background: $primary;
+    color: color-contrast($primary);
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.mn-md-delivery-title {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.mn-md-delivery-meta {
+    margin: 0.15rem 0 0;
+    font-size: 0.85rem;
+    color: $gray-600;
+}
+
+.mn-md-items {
+    margin: 0.9rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.mn-md-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.45rem 0;
+    border-top: 1px solid $border-color;
+}
+
+.mn-md-move {
+    display: flex;
+    gap: 0.35rem;
+    align-items: center;
+
+    .form-select {
+        width: auto;
+    }
+}
+
+.mn-md-qty {
+    width: 4.5rem;
+}
+
+.mn-md-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.mn-md-finish-list {
+    margin: 0;
+    padding-left: 1.2rem;
+}
+
+.mn-md-finish-item {
+    margin-bottom: 0.9rem;
+}
+
+.mn-md-finish-address {
+    color: $gray-600;
+}
+
+.mn-md-finish-positions {
+    margin: 0.3rem 0 0;
+    padding-left: 1.1rem;
+    font-size: 0.9rem;
+}
+
+.mn-md-overview {
+    margin: 1rem 0;
+}
+
+.mn-md-overview-heading {
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+// Background update in progress (see split-delivery.html.twig)
+.mn-md {
+    transition: opacity 0.15s ease;
+
+    &.is-loading {
+        opacity: 0.55;
+        pointer-events: none;
+    }
+}
+
+.mn-md-hint {
+    margin: 0.75rem 0 0;
+    font-size: 0.85rem;
+    color: $gray-600;
+}

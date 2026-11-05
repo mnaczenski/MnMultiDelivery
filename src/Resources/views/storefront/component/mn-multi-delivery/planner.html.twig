@@ -1,0 +1,221 @@
+{#
+    Delivery planner on the confirm page. Plain forms posting to
+    DeliveryPlanController; every change recalculates the cart and returns here.
+    The storefront plugin MnMultiDelivery (on the wrapper in
+    page/checkout/confirm/index.html.twig) sends them in the background.
+
+    Customise it in your plugin or theme with
+    {% sw_extends '@Storefront/storefront/component/mn-multi-delivery/planner.html.twig' %}
+    and the blocks below. Keep the form actions and field names: the
+    storefront plugin and the controller rely on them.
+#}
+{% block component_mn_multi_delivery %}
+    {% set plan = md.plan %}
+    {% set manualGroups = md.manualGroups %}
+    {% set rootIds = page.cart.lineItems.keys %}
+    {% set canMove = (md.manualMoves or md.adjustable) and md.moveTargets|length > 1 %}
+
+    <section id="mn-multi-delivery" class="card checkout-card mn-md">
+        <div class="card-body">
+            {% block component_mn_multi_delivery_heading %}
+                <h2 class="card-title">{{ 'mnMultiDelivery.heading'|trans }}</h2>
+            {% endblock %}
+
+            {% if md.blockReason %}
+                {% block component_mn_multi_delivery_blocked %}
+                    <p class="mn-md-note">{{ ('mnMultiDelivery.blocked.' ~ md.blockReason)|trans }}</p>
+                {% endblock %}
+            {% elseif not plan.enabled %}
+                {% block component_mn_multi_delivery_intro %}
+                    <p class="mn-md-intro">{{ 'mnMultiDelivery.intro'|trans }}</p>
+                    <form method="post" action="{{ path('frontend.mn.multi-delivery.toggle') }}">
+                        <input type="hidden" name="enabled" value="1">
+                        <button type="submit" class="btn btn-outline-primary">{{ 'mnMultiDelivery.toggle'|trans }}</button>
+                    </form>
+                {% endblock %}
+            {% else %}
+                {% block component_mn_multi_delivery_strategies %}
+                    <form method="post" action="{{ path('frontend.mn.multi-delivery.strategy') }}" class="mn-md-strategy">
+                        <fieldset>
+                            <legend class="mn-md-legend">{{ 'mnMultiDelivery.strategy'|trans }}</legend>
+                            <div class="mn-md-strategy-options">
+                                {% for name in md.strategies %}
+                                    {% block component_mn_multi_delivery_strategy_option %}
+                                        <label class="mn-md-strategy-option{% if name == md.strategy %} is-active{% endif %}">
+                                            <input type="radio" name="strategy" value="{{ name }}" {% if name == md.strategy %}checked{% endif %} data-mn-md-auto-submit>
+                                            <span class="mn-md-strategy-name">{{ ('mnMultiDelivery.strategies.' ~ name)|trans }}</span>
+                                            <span class="mn-md-strategy-hint">{{ ('mnMultiDelivery.strategyHints.' ~ name)|trans }}</span>
+                                        </label>
+                                    {% endblock %}
+                                {% endfor %}
+                            </div>
+                            <noscript><button type="submit" class="btn btn-light btn-sm">{{ 'mnMultiDelivery.save'|trans }}</button></noscript>
+                        </fieldset>
+                    </form>
+                {% endblock %}
+
+                {% set shownGroups = [] %}
+                {% block component_mn_multi_delivery_list %}
+                    <div class="mn-md-delivery">
+                        {% for delivery in page.cart.deliveries %}
+                            {% set info = delivery.extensions.mnDeliveryGroup|default(null) %}
+                            {% set groupId = info ? info.groupId : 'main' %}
+                            {% set groupNumber = md.groupNumbers[groupId]|default(loop.index) %}
+                            {% set shownGroups = shownGroups|merge([groupId]) %}
+                            {% set settings = plan.getGroupSettings(groupId) %}
+
+                            {% block component_mn_multi_delivery_item %}
+                                <article class="mn-md-delivery">
+                                    {% block component_mn_multi_delivery_item_header %}
+                                        <header class="mn-md-delivery-head">
+                                            <span class="mn-md-delivery-number">{{ groupNumber }}</span>
+                                            <div>
+                                                {% block component_mn_multi_delivery_item_title %}
+                                                    <h3 class="mn-md-delivery-title">
+                                                        {% if info and info.warehouseName %}
+                                                            {{ 'mnMultiDelivery.shipsFrom'|trans }} {{ info.warehouseName }}
+                                                        {% elseif groupId in ['main', 'now', 'later'] and md.strategy != 'manual' %}
+                                                            {{ ('mnMultiDelivery.groups.' ~ groupId)|trans }}
+                                                        {% else %}
+                                                            {{ 'mnMultiDelivery.delivery'|trans }} {{ groupNumber }}
+                                                        {% endif %}
+                                                    </h3>
+                                                {% endblock %}
+                                                {% block component_mn_multi_delivery_item_meta %}
+                                                    <p class="mn-md-delivery-meta">
+                                                        {{ 'mnMultiDelivery.arrives'|trans }}:
+                                                        {{ delivery.deliveryDate.earliest|format_date('medium', locale=app.request.locale) }} – {{ delivery.deliveryDate.latest|format_date('medium', locale=app.request.locale) }}
+                                                        · {{ 'mnMultiDelivery.costs'|trans }}: {{ delivery.shippingCosts.totalPrice|currency }}
+                                                    </p>
+                                                {% endblock %}
+                                            </div>
+                                        </header>
+                                    {% endblock %}
+
+                                    {% block component_mn_multi_delivery_item_settings %}
+                                        <form method="post" action="{{ path('frontend.mn.multi-delivery.group') }}" class="mn-md-delivery-settings row g-2">
+                                            <input type="hidden" name="groupId" value="{{ groupId }}">
+                                            {% block component_mn_multi_delivery_item_address %}
+                                                <div class="col-md-7">
+                                                    <label class="form-label" for="mn-md-address-{{ groupId }}">{{ 'mnMultiDelivery.address'|trans }}</label>
+                                                    <select class="form-select" id="mn-md-address-{{ groupId }}" name="addressId" data-mn-md-auto-submit>
+                                                        <option value="">{{ 'mnMultiDelivery.addressDefault'|trans }}</option>
+                                                        {% for address in md.addresses %}
+                                                            <option value="{{ address.id }}" {% if settings.addressId|default(null) == address.id %}selected{% endif %}>
+                                                                {{ address.firstName }} {{ address.lastName }}, {{ address.street }}, {{ address.zipcode }} {{ address.city }}
+                                                            </option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            {% endblock %}
+                                            {% block component_mn_multi_delivery_item_shipping_method %}
+                                                <div class="col-md-5">
+                                                    <label class="form-label" for="mn-md-shipping-{{ groupId }}">{{ 'mnMultiDelivery.shippingMethod'|trans }}</label>
+                                                    <select class="form-select" id="mn-md-shipping-{{ groupId }}" name="shippingMethodId" data-mn-md-auto-submit>
+                                                        <option value="">{{ 'mnMultiDelivery.shippingDefault'|trans }}</option>
+                                                        {% for method in page.shippingMethods %}
+                                                            <option value="{{ method.id }}" {% if settings.shippingMethodId|default(null) == method.id %}selected{% endif %}>{{ method.translated.name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            {% endblock %}
+                                            <noscript><div class="col-12"><button type="submit" class="btn btn-light btn-sm">{{ 'mnMultiDelivery.save'|trans }}</button></div></noscript>
+                                        </form>
+                                    {% endblock %}
+
+                                    {% block component_mn_multi_delivery_item_positions %}
+                                        <ul class="mn-md-items">
+                                            {% for position in delivery.positions %}
+                                                {% block component_mn_multi_delivery_item_position %}
+                                                    <li class="mn-md-item">
+                                                        {% block component_mn_multi_delivery_item_position_label %}
+                                                            <span class="mn-md-item-name">{{ position.quantity }} × {{ position.lineItem.label }}</span>
+                                                        {% endblock %}
+                                                        {% if canMove and position.identifier in rootIds %}
+                                                            {% block component_mn_multi_delivery_item_position_move %}
+                                                                <form method="post" action="{{ path('frontend.mn.multi-delivery.assign') }}" class="mn-md-move">
+                                                                    <input type="hidden" name="lineItemId" value="{{ position.identifier }}">
+                                                                    <input type="hidden" name="fromGroupId" value="{{ groupId }}">
+                                                                    <label class="visually-hidden" for="mn-md-move-{{ groupId }}-{{ position.identifier }}">{{ 'mnMultiDelivery.moveTo'|trans }}</label>
+                                                                    <select class="form-select form-select-sm" id="mn-md-move-{{ groupId }}-{{ position.identifier }}" name="groupId">
+                                                                        {% for target in md.moveTargets %}
+                                                                            {% if target != groupId %}
+                                                                                <option value="{{ target }}">{{ 'mnMultiDelivery.moveTo'|trans }} {{ 'mnMultiDelivery.delivery'|trans }} {{ md.groupNumbers[target]|default('') }}</option>
+                                                                            {% endif %}
+                                                                        {% endfor %}
+                                                                    </select>
+                                                                    {% if position.quantity > 1 %}
+                                                                        <label class="visually-hidden" for="mn-md-qty-{{ groupId }}-{{ position.identifier }}">{{ 'mnMultiDelivery.moveQuantity'|trans }}</label>
+                                                                        <input class="form-control form-control-sm mn-md-qty" type="number" min="1" max="{{ position.quantity }}" value="{{ position.quantity }}"
+                                                                               id="mn-md-qty-{{ groupId }}-{{ position.identifier }}" name="quantity">
+                                                                    {% endif %}
+                                                                    <button type="submit" class="btn btn-light btn-sm">{{ 'mnMultiDelivery.move'|trans }}</button>
+                                                                </form>
+                                                            {% endblock %}
+                                                        {% endif %}
+                                                    </li>
+                                                {% endblock %}
+                                            {% endfor %}
+                                        </ul>
+                                    {% endblock %}
+
+                                    {% if groupId in manualGroups %}
+                                        {% block component_mn_multi_delivery_item_remove %}
+                                            <form method="post" action="{{ path('frontend.mn.multi-delivery.remove-group') }}">
+                                                <input type="hidden" name="groupId" value="{{ groupId }}">
+                                                <button type="submit" class="btn btn-link btn-sm mn-md-remove">{{ 'mnMultiDelivery.removeDelivery'|trans }}</button>
+                                            </form>
+                                        {% endblock %}
+                                    {% endif %}
+                                </article>
+                            {% endblock %}
+                        {% endfor %}
+
+                        {# Manual deliveries that have no items yet #}
+                        {% if md.manualMoves %}
+                            {% for groupId in manualGroups %}
+                                {% if groupId not in shownGroups %}
+                                    {% block component_mn_multi_delivery_empty_item %}
+                                        <article class="mn-md-delivery is-empty">
+                                            <header class="mn-md-delivery-head">
+                                                <span class="mn-md-delivery-number">{{ md.groupNumbers[groupId] }}</span>
+                                                <h3 class="mn-md-delivery-title">{{ 'mnMultiDelivery.delivery'|trans }} {{ md.groupNumbers[groupId] }}</h3>
+                                            </header>
+                                            <form method="post" action="{{ path('frontend.mn.multi-delivery.remove-group') }}">
+                                                <input type="hidden" name="groupId" value="{{ groupId }}">
+                                                <button type="submit" class="btn btn-link btn-sm mn-md-remove">{{ 'mnMultiDelivery.removeDelivery'|trans }}</button>
+                                            </form>
+                                        </article>
+                                    {% endblock %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                {% endblock %}
+
+                {% block component_mn_multi_delivery_hint %}
+                    <p class="mn-md-hint">{{ 'mnMultiDelivery.countryHint'|trans({'%country%': context.shippingLocation.country.translated.name}) }}</p>
+                {% endblock %}
+
+                {% block component_mn_multi_delivery_actions %}
+                    <div class="mn-md-actions">
+                        {% if md.manualMoves and manualGroups|length < 5 %}
+                            <form method="post" action="{{ path('frontend.mn.multi-delivery.add-group') }}">
+                                <button type="submit" class="btn btn-outline-primary btn-sm">+ {{ 'mnMultiDelivery.addDelivery'|trans }}</button>
+                            </form>
+                        {% endif %}
+                        {% if md.adjusted %}
+                            <form method="post" action="{{ path('frontend.mn.multi-delivery.reset') }}">
+                                <button type="submit" class="btn btn-outline-primary btn-sm">{{ 'mnMultiDelivery.reset'|trans }}</button>
+                            </form>
+                        {% endif %}
+                        <form method="post" action="{{ path('frontend.mn.multi-delivery.toggle') }}">
+                            <input type="hidden" name="enabled" value="0">
+                            <button type="submit" class="btn btn-link btn-sm">{{ 'mnMultiDelivery.toggleOff'|trans }}</button>
+                        </form>
+                    </div>
+                {% endblock %}
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}

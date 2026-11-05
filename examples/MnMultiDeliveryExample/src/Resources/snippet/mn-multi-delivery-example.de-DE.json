@@ -1,0 +1,8 @@
+{
+    "mnMultiDelivery": {
+        "strategies": { "bulky": "Nach Größe" },
+        "strategyHints": { "bulky": "Sperrige Artikel kommen per Spedition, alles andere als Paket." },
+        "groups": { "freight": "Spedition", "parcel": "Paket" },
+        "blocked": { "preorder": "Bestellungen mit Vorbestellartikeln werden in einer Lieferung versendet." }
+    }
+}

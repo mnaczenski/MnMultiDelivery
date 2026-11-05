@@ -1,0 +1,60 @@
+{
+    "mnMultiDelivery": {
+        "heading": "Deliveries",
+        "intro": "Have your order delivered in several parts – to different addresses or as soon as items are ready.",
+        "toggle": "Split into several deliveries",
+        "toggleOff": "Ship everything together",
+        "strategy": "How should we split?",
+        "strategies": {
+            "manual": "I'll choose myself",
+            "availability": "By availability",
+            "warehouse": "By warehouse",
+            "deliveryTime": "By delivery time"
+        },
+        "strategyHints": {
+            "manual": "Move items between deliveries and pick an address for each.",
+            "availability": "In-stock items ship now, the rest as soon as it's available.",
+            "warehouse": "Each warehouse ships its items separately.",
+            "deliveryTime": "Items with similar delivery times ship together."
+        },
+        "delivery": "Delivery",
+        "groups": {
+            "main": "Delivery 1",
+            "now": "Ships now",
+            "later": "Ships later"
+        },
+        "shipsFrom": "Ships from",
+        "address": "Deliver to",
+        "addressDefault": "Shipping address",
+        "shippingMethod": "Shipping method",
+        "shippingDefault": "Selected shipping method",
+        "arrives": "Estimated delivery",
+        "costs": "Shipping",
+        "items": "Items",
+        "moveTo": "Move to",
+        "moveQuantity": "Quantity",
+        "move": "Move",
+        "addDelivery": "Add a delivery",
+        "removeDelivery": "Remove this delivery",
+        "save": "Apply",
+        "blocked": {
+            "payment": "Several deliveries aren't available with the selected payment method.",
+            "quote": "Quotes are delivered as agreed.",
+            "subscription": "Subscriptions are delivered in one shipment.",
+            "recalculation": "This order can't be split.",
+            "empty": ""
+        },
+        "finishHeading": "Your deliveries",
+        "updating": "Updating deliveries …",
+        "updated": "Deliveries updated",
+        "countryHint": "Deliveries can go to any of your addresses in %country%. Taxes are calculated for one country per order.",
+        "reset": "Back to the automatic split",
+        "mail": {
+            "heading": "Your order arrives in %count% deliveries:",
+            "delivery": "Delivery",
+            "shipsFrom": "Ships from",
+            "deliverTo": "Deliver to",
+            "expected": "Expected"
+        }
+    }
+}

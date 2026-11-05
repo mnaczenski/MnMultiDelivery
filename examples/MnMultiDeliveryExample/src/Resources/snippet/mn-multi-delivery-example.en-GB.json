@@ -1,0 +1,8 @@
+{
+    "mnMultiDelivery": {
+        "strategies": { "bulky": "By size" },
+        "strategyHints": { "bulky": "Bulky items ship by freight, everything else by parcel." },
+        "groups": { "freight": "Freight", "parcel": "Parcel" },
+        "blocked": { "preorder": "Orders with pre-order items ship in one delivery." }
+    }
+}

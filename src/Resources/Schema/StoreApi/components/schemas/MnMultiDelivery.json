@@ -1,0 +1,159 @@
+{
+    "openapi": "3.2.0",
+    "info": [],
+    "paths": [],
+    "components": {
+        "schemas": {
+            "MnMultiDelivery": {
+                "type": "object",
+                "description": "State of the delivery planner for the current cart.",
+                "required": [
+                    "apiAlias",
+                    "plan",
+                    "strategies",
+                    "strategy",
+                    "manualMoves",
+                    "adjustable",
+                    "adjusted",
+                    "manualGroups",
+                    "moveTargets",
+                    "groupNumbers",
+                    "shippingCountryId",
+                    "addressIds"
+                ],
+                "properties": {
+                    "apiAlias": {
+                        "type": "string",
+                        "enum": [
+                            "mn_multi_delivery"
+                        ]
+                    },
+                    "plan": {
+                        "$ref": "#/components/schemas/MnDeliveryPlan"
+                    },
+                    "blockReason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Why the cart can not be split (disabled, empty, quote, subscription, recalculation, payment, or a project-specific reason), null when it can."
+                    },
+                    "strategies": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Splitting rules the customer may choose, e.g. manual, availability, deliveryTime, warehouse."
+                    },
+                    "strategy": {
+                        "type": "string",
+                        "description": "Active splitting rule."
+                    },
+                    "manualMoves": {
+                        "type": "boolean",
+                        "description": "The customer creates the deliveries (add-group/remove-group are available)."
+                    },
+                    "adjustable": {
+                        "type": "boolean",
+                        "description": "Items may be moved within the automatic split."
+                    },
+                    "adjusted": {
+                        "type": "boolean",
+                        "description": "The customer moved items within the automatic split (reset is available)."
+                    },
+                    "manualGroups": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "moveTargets": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Group ids items can be moved to."
+                    },
+                    "groupNumbers": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "integer"
+                        },
+                        "description": "Display number per group id."
+                    },
+                    "shippingCountryId": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{32}$",
+                        "description": "Delivery addresses must be in this country."
+                    },
+                    "addressIds": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{32}$"
+                        },
+                        "description": "Customer addresses a delivery may use."
+                    }
+                }
+            },
+            "MnDeliveryPlan": {
+                "type": "object",
+                "properties": {
+                    "apiAlias": {
+                        "type": "string",
+                        "enum": [
+                            "mn_delivery_plan"
+                        ]
+                    },
+                    "enabled": {
+                        "type": "boolean"
+                    },
+                    "strategy": {
+                        "type": "string"
+                    },
+                    "groups": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                                "addressId": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                },
+                                "shippingMethodId": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                }
+                            }
+                        },
+                        "description": "Address and shipping method per group id."
+                    },
+                    "assignments": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "integer"
+                            }
+                        },
+                        "description": "Manual rule: line item id => group id => quantity."
+                    },
+                    "manualGroups": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "adjustments": {
+                        "type": "object",
+                        "description": "Automatic rules: strategy => line item id => group id => quantity."
+                    }
+                }
+            }
+        }
+    }
+}

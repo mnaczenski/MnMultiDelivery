@@ -1,0 +1,10 @@
+{% sw_extends '@Storefront/storefront/component/mn-multi-delivery/planner.html.twig' %}
+
+{# Name the deliveries of the "By size" rule "Parcel" and "Freight". #}
+{% block component_mn_multi_delivery_item_title %}
+    {% if groupId in ['parcel', 'freight'] %}
+        <h3 class="mn-md-delivery-title">{{ ('mnMultiDelivery.groups.' ~ groupId)|trans }}</h3>
+    {% else %}
+        {{ parent() }}
+    {% endif %}
+{% endblock %}

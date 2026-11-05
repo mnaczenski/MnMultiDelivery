@@ -1,0 +1,307 @@
+{
+    "openapi": "3.2.0",
+    "info": [],
+    "paths": {
+        "/checkout/multi-delivery": {
+            "get": {
+                "tags": [
+                    "Cart",
+                    "Multi Delivery"
+                ],
+                "summary": "Load the delivery planner",
+                "description": "Returns the delivery plan of the current cart and what the customer can do with it. Requires a logged-in customer or guest.",
+                "operationId": "readMnMultiDelivery",
+                "responses": {
+                    "200": {
+                        "description": "Planner state.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MnMultiDelivery"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/checkout/multi-delivery/toggle": {
+            "post": {
+                "tags": [
+                    "Cart",
+                    "Multi Delivery"
+                ],
+                "summary": "Turn splitting on or off",
+                "description": "Turns the delivery plan on or off for the current cart.",
+                "operationId": "mnMultiDeliveryToggle",
+                "responses": {
+                    "200": {
+                        "description": "The recalculated cart. Each delivery carries extensions.mnDeliveryGroup.groupId.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cart"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "enabled": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "enabled"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/checkout/multi-delivery/strategy": {
+            "post": {
+                "tags": [
+                    "Cart",
+                    "Multi Delivery"
+                ],
+                "summary": "Choose the splitting rule",
+                "description": "Sets one of the offered splitting rules (see GET strategies).",
+                "operationId": "mnMultiDeliveryStrategy",
+                "responses": {
+                    "200": {
+                        "description": "The recalculated cart. Each delivery carries extensions.mnDeliveryGroup.groupId.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cart"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "strategy": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "strategy"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/checkout/multi-delivery/group": {
+            "post": {
+                "tags": [
+                    "Cart",
+                    "Multi Delivery"
+                ],
+                "summary": "Set address and shipping method of a delivery",
+                "description": "Omit or send null to use the cart's shipping address or shipping method.",
+                "operationId": "mnMultiDeliveryGroup",
+                "responses": {
+                    "200": {
+                        "description": "The recalculated cart. Each delivery carries extensions.mnDeliveryGroup.groupId.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cart"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "groupId": {
+                                        "type": "string"
+                                    },
+                                    "addressId": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "pattern": "^[0-9a-f]{32}$"
+                                    },
+                                    "shippingMethodId": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "pattern": "^[0-9a-f]{32}$"
+                                    }
+                                },
+                                "required": [
+                                    "groupId"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/checkout/multi-delivery/add-group": {
+            "post": {
+                "tags": [
+                    "Cart",
+                    "Multi Delivery"
+                ],
+                "summary": "Add a delivery",
+                "description": "Manual rule only. Adds an empty delivery (at most five).",
+                "operationId": "mnMultiDeliveryAddGroup",
+                "responses": {
+                    "200": {
+                        "description": "The recalculated cart. Each delivery carries extensions.mnDeliveryGroup.groupId.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cart"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/checkout/multi-delivery/remove-group": {
+            "post": {
+                "tags": [
+                    "Cart",
+                    "Multi Delivery"
+                ],
+                "summary": "Remove a delivery",
+                "description": "Manual rule only. Its items go back to the first delivery.",
+                "operationId": "mnMultiDeliveryRemoveGroup",
+                "responses": {
+                    "200": {
+                        "description": "The recalculated cart. Each delivery carries extensions.mnDeliveryGroup.groupId.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cart"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "groupId": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "groupId"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/checkout/multi-delivery/move": {
+            "post": {
+                "tags": [
+                    "Cart",
+                    "Multi Delivery"
+                ],
+                "summary": "Move items between deliveries",
+                "description": "Moves a quantity of a top-level cart item. With an automatic rule this is stored as an adjustment.",
+                "operationId": "mnMultiDeliveryMove",
+                "responses": {
+                    "200": {
+                        "description": "The recalculated cart. Each delivery carries extensions.mnDeliveryGroup.groupId.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cart"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "lineItemId": {
+                                        "type": "string"
+                                    },
+                                    "fromGroupId": {
+                                        "type": "string"
+                                    },
+                                    "toGroupId": {
+                                        "type": "string"
+                                    },
+                                    "quantity": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "0 moves the whole quantity."
+                                    }
+                                },
+                                "required": [
+                                    "lineItemId",
+                                    "fromGroupId",
+                                    "toGroupId"
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/checkout/multi-delivery/reset": {
+            "post": {
+                "tags": [
+                    "Cart",
+                    "Multi Delivery"
+                ],
+                "summary": "Back to the automatic split",
+                "description": "Drops the customer's adjustments of the active automatic rule.",
+                "operationId": "mnMultiDeliveryReset",
+                "responses": {
+                    "200": {
+                        "description": "The recalculated cart. Each delivery carries extensions.mnDeliveryGroup.groupId.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Cart"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

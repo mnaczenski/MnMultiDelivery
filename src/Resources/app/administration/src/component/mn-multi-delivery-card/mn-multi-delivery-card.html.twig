@@ -1,0 +1,90 @@
+{% block mn_multi_delivery_card %}
+<div class="mn-multi-delivery-card">
+    <mt-card
+        v-if="isLoading && !deliveries.length"
+        position-identifier="mn-multi-delivery-card-loading"
+        :is-loading="true"
+    />
+
+    <mt-card
+        v-for="(delivery, index) in deliveries"
+        :key="delivery.id"
+        class="mn-multi-delivery-card__delivery"
+        position-identifier="mn-multi-delivery-card"
+        :title="title(delivery, index)"
+        :subtitle="delivery.stateMachineState?.translated?.name"
+        :is-loading="isLoading || busy[delivery.id]"
+    >
+        {% block mn_multi_delivery_card_details %}
+        <div class="mn-multi-delivery-card__grid">
+            {% block mn_multi_delivery_card_address %}
+            <div>
+                <div class="mn-multi-delivery-card__label">{{ $t('mn-multi-delivery.address') }}</div>
+                <template v-if="delivery.shippingOrderAddress">
+                    {{ delivery.shippingOrderAddress.firstName }} {{ delivery.shippingOrderAddress.lastName }}<br>
+                    {{ delivery.shippingOrderAddress.street }}<br>
+                    {{ delivery.shippingOrderAddress.zipcode }} {{ delivery.shippingOrderAddress.city }}<br>
+                    {{ delivery.shippingOrderAddress.country?.translated?.name }}
+                </template>
+            </div>
+            {% endblock %}
+            {% block mn_multi_delivery_card_shipping %}
+            <div>
+                <div class="mn-multi-delivery-card__label">{{ $t('mn-multi-delivery.shipping') }}</div>
+                {{ delivery.shippingMethod?.translated?.name }} · {{ formatPrice(delivery) }}<br>
+                {{ formatDate(delivery.shippingDateEarliest) }} – {{ formatDate(delivery.shippingDateLatest) }}
+            </div>
+            {% endblock %}
+            {% block mn_multi_delivery_card_items %}
+            <div>
+                <div class="mn-multi-delivery-card__label">{{ $t('mn-multi-delivery.items') }}</div>
+                <div
+                    v-for="position in delivery.positions"
+                    :key="position.id"
+                >
+                    {{ position.quantity }} × {{ position.orderLineItem?.label }}
+                </div>
+            </div>
+            {% endblock %}
+        </div>
+        {% endblock %}
+
+        {% block mn_multi_delivery_card_actions %}
+        <div class="mn-multi-delivery-card__actions">
+            <mt-select
+                class="mn-multi-delivery-card__transition"
+                :label="$t('mn-multi-delivery.changeState')"
+                :options="transitions[delivery.id] || []"
+                label-property="name"
+                value-property="id"
+                :model-value="null"
+                :disabled="!canEdit || busy[delivery.id] || !(transitions[delivery.id] || []).length"
+                @update:model-value="(value) => onTransition(delivery, value)"
+            />
+            <mt-text-field
+                v-model="trackingInput[delivery.id]"
+                class="mn-multi-delivery-card__tracking"
+                :label="$t('mn-multi-delivery.tracking')"
+                :disabled="!canEdit || busy[delivery.id]"
+            />
+            <mt-button
+                variant="secondary"
+                size="small"
+                :disabled="!canEdit || busy[delivery.id]"
+                @click="onSaveTracking(delivery)"
+            >
+                {{ $t('mn-multi-delivery.saveTracking') }}
+            </mt-button>
+            <mt-button
+                variant="secondary"
+                size="small"
+                :disabled="!canEdit || busy[delivery.id]"
+                @click="onCreateDeliveryNote(delivery)"
+            >
+                {{ $t('mn-multi-delivery.createNote') }}
+            </mt-button>
+        </div>
+        {% endblock %}
+    </mt-card>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{#
+    Delivery list of the order confirmation mail (plain text). Override it
+    like order-deliveries.html.twig.
+
+    Keep every text line ending in output ({{ }}), never in a tag: Twig drops
+    the newline after a tag, and lines would run together.
+#}
+{% if order.deliveries|length > 1 %}
+{{ mnDeliveryTexts.heading|replace({'%count%': order.deliveries|length}) }}
+{% for splitDelivery in order.deliveries %}
+{% set splitInfo = splitDelivery.customFields.mn_multi_delivery|default(null) %}
+{% set splitAddress = splitDelivery.shippingOrderAddress %}
+
+{{ mnDeliveryTexts.delivery }} {{ loop.index }}{{ splitInfo and splitInfo.warehouseName ? ' - ' ~ mnDeliveryTexts.shipsFrom ~ ' ' ~ splitInfo.warehouseName : '' }}
+{{ mnDeliveryTexts.expected }}: {{ splitDelivery.shippingDateEarliest|date('d.m.Y') }} - {{ splitDelivery.shippingDateLatest|date('d.m.Y') }}, {{ splitDelivery.shippingMethod.translated.name }}, {{ splitDelivery.shippingCosts.totalPrice|currency(currencyIsoCode) }}
+{% if splitAddress %}
+{{ mnDeliveryTexts.deliverTo }}: {{ splitAddress.firstName }} {{ splitAddress.lastName }}, {{ splitAddress.street }}, {{ splitAddress.zipcode }} {{ splitAddress.city }}
+{% endif %}
+{% for splitPosition in splitDelivery.positions|default([]) %}
+  {{ splitPosition.quantity }} x {{ splitPosition.orderLineItem.label|default('') }}
+{% endfor %}
+{% endfor %}
+
+{% endif %}

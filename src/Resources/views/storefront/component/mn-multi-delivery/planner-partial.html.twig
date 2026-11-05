@@ -1,0 +1,23 @@
+{#
+    Background response of DeliveryPlanController for the MnMultiDelivery
+    storefront plugin: only the parts of the confirm page that depend on the
+    delivery plan.
+#}
+{% if redirect is defined %}
+    <div data-mn-md-meta data-redirect="{{ redirect }}"></div>
+{% else %}
+    {% set md = page.extensions.mnMultiDelivery|default(null) %}
+    <template data-mn-md-planner>
+        {% if md and md.blockReason != 'empty' %}
+            {% sw_include '@Storefront/storefront/component/mn-multi-delivery/planner.html.twig' with { md: md } %}
+        {% endif %}
+    </template>
+    <template data-mn-md-summary>
+        {% sw_include '@Storefront/storefront/page/checkout/summary.html.twig' %}
+    </template>
+    {# Errors that block the order are shown by a full reload, as Shopware's confirm page does. #}
+    <div data-mn-md-meta
+         data-hash="{{ page.cart.getHash }}"
+         data-block-resubmit="{{ page.cart.errors.blockResubmit ? '1' : '0' }}"
+         data-reload="{{ page.cart.errors.blockOrder ? '1' : '0' }}"></div>
+{% endif %}

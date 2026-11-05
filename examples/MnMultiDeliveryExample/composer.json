@@ -1,0 +1,23 @@
+{
+    "name": "mn/multi-delivery-example",
+    "description": "Example project plugin for Multi Delivery: a custom splitting rule, an allocation listener, a blocker, order data and a template override",
+    "type": "shopware-platform-plugin",
+    "version": "1.0.0",
+    "license": "MIT",
+    "require": {
+        "shopware/core": "~6.7.0",
+        "mn/multi-delivery": "^1.0"
+    },
+    "extra": {
+        "shopware-plugin-class": "Mn\\MultiDeliveryExample\\MnMultiDeliveryExample",
+        "label": {
+            "de-DE": "Mehrfachlieferung – Beispiel",
+            "en-GB": "Multi Delivery – Example"
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Mn\\MultiDeliveryExample\\": "src/"
+        }
+    }
+}

@@ -1,0 +1,7 @@
+{% sw_extends '@Storefront/storefront/pending-order/page/checkout/finish/finish-details.html.twig' %}
+
+{% block page_checkout_pending_approve_order_dispatch_method %}
+    {{ parent() }}
+
+    {% sw_include '@Storefront/storefront/component/mn-multi-delivery/delivery-overview.html.twig' with { deliveries: page.pendingOrderCart.deliveries|default([]) } %}
+{% endblock %}

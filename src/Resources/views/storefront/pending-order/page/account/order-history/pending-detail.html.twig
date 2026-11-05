@@ -1,0 +1,7 @@
+{% sw_extends '@Storefront/storefront/pending-order/page/account/order-history/pending-detail.html.twig' %}
+
+{% block page_account_order_item_detail_table_labels_summary %}
+    {{ parent() }}
+
+    {% sw_include '@Storefront/storefront/component/mn-multi-delivery/delivery-overview.html.twig' with { deliveries: order.cartPayload.deliveries|default([]) } %}
+{% endblock %}

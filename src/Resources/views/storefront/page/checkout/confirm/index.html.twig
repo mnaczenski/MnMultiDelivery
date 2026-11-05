@@ -1,0 +1,16 @@
+{% sw_extends '@Storefront/storefront/page/checkout/confirm/index.html.twig' %}
+
+{% block page_checkout_confirm_product_table %}
+    {% set md = page.extensions.mnMultiDelivery|default(null) %}
+    {% if md and md.blockReason != 'empty' %}
+        {% set mnMultiDeliveryOptions = {
+            updatingText: 'mnMultiDelivery.updating'|trans|striptags,
+            updatedText: 'mnMultiDelivery.updated'|trans|striptags,
+        } %}
+        <div data-mn-multi-delivery data-mn-multi-delivery-options="{{ mnMultiDeliveryOptions|json_encode }}">
+            {% sw_include '@Storefront/storefront/component/mn-multi-delivery/planner.html.twig' with { md: md } %}
+        </div>
+    {% endif %}
+
+    {{ parent() }}
+{% endblock %}
