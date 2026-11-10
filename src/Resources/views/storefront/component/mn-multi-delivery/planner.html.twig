@@ -81,10 +81,15 @@
                                                         {% endif %}
                                                     </h3>
                                                 {% endblock %}
-                                                {% if delivery.location.country.id != context.shippingLocation.country.id %}
+                                                {% set mnForeign = delivery.location.country.id != context.shippingLocation.country.id %}
+                                                {% if mnForeign or groupId in md.separateOrders.separateGroupIds|default([]) %}
                                                     {% block component_mn_multi_delivery_item_separate_order %}
                                                         <p class="mn-md-separate-badge">
-                                                            {{ 'mnMultiDelivery.separate.badge'|trans({'%country%': delivery.location.country.translated.name})|sw_sanitize }}
+                                                            {% if mnForeign %}
+                                                                {{ 'mnMultiDelivery.separate.badge'|trans({'%country%': delivery.location.country.translated.name})|sw_sanitize }}
+                                                            {% else %}
+                                                                {{ 'mnMultiDelivery.separate.badgeHome'|trans|sw_sanitize }}
+                                                            {% endif %}
                                                         </p>
                                                     {% endblock %}
                                                 {% endif %}
@@ -202,7 +207,9 @@
 
                 {% block component_mn_multi_delivery_hint %}
                     {% set separate = md.separateOrders|default({}) %}
-                    {% if separate.paymentAllowed|default(false) %}
+                    {% if separate.paymentAllowed|default(false) and separate.mode|default('') == 'allSeparate' %}
+                        <p class="mn-md-hint">{{ 'mnMultiDelivery.separate.allHint'|trans({'%country%': context.shippingLocation.country.translated.name})|sw_sanitize }}</p>
+                    {% elseif separate.paymentAllowed|default(false) %}
                         <p class="mn-md-hint">{{ 'mnMultiDelivery.separate.hint'|trans({'%country%': context.shippingLocation.country.translated.name})|sw_sanitize }}</p>
                     {% elseif separate.enabled|default(false) %}
                         <p class="mn-md-hint">{{ 'mnMultiDelivery.separate.paymentHint'|trans({'%country%': context.shippingLocation.country.translated.name})|sw_sanitize }}</p>

@@ -137,9 +137,74 @@ class SeparateOrderSplitterTest extends TestCase
         static::assertSame(['sofa' => 2], $this->quantities($cart), 'the original cart is untouched');
     }
 
-    private function splitter(string $mode = SplitSettings::COUNTRY_SEPARATE_ORDERS): SeparateOrderSplitter
+    public function testEveryDeliveryBecomesASeparateOrder(): void
     {
-        return new SeparateOrderSplitter(Fixtures::settings(['countryMode' => $mode]));
+        $plan = new DeliveryPlan(true, 'manual');
+        $second = $plan->addManualGroup();
+        $third = $plan->addManualGroup();
+        $plan->setAssignments('sofa', [$second => 1]);
+        $plan->setAssignments('lamp', [$third => 3]);
+
+        $cart = $this->cart(['sofa' => 2, 'lamp' => 3, 'chair' => 1], [
+            ['main', null, ['sofa' => 1, 'chair' => 1]],
+            [$second, null, ['sofa' => 1]],
+            [$third, self::AUSTRIA, ['lamp' => 3]],
+        ], $plan);
+
+        $split = $this->splitter(SplitSettings::COUNTRY_ALL_SEPARATE, true)->split($cart, $this->context);
+
+        static::assertNotNull($split);
+        static::assertSame([$second, $third], array_map(static fn ($part) => $part->groupId, $split->parts));
+        static::assertSame(['sofa' => 1], $this->quantities($split->parts[0]->cart));
+        static::assertSame(['lamp' => 3], $this->quantities($split->parts[1]->cart));
+        static::assertSame('address-home-' . $second, $split->parts[0]->address->getId());
+        static::assertSame(['sofa' => 1, 'chair' => 1], $this->quantities($split->mainCart));
+        static::assertTrue($split->hasMainOrder());
+    }
+
+    public function testEveryDeliveryModeKeepsTheFirstHomeDeliveryWhenTheMainOneIsAbroad(): void
+    {
+        $cart = $this->cart(['sofa' => 3], [
+            ['main', self::AUSTRIA, ['sofa' => 1]],
+            ['delivery-2', null, ['sofa' => 1]],
+            ['delivery-3', null, ['sofa' => 1]],
+        ]);
+
+        $split = $this->splitter(SplitSettings::COUNTRY_ALL_SEPARATE, true)->split($cart, $this->context);
+
+        static::assertNotNull($split);
+        static::assertSame(['main', 'delivery-3'], array_map(static fn ($part) => $part->groupId, $split->parts));
+        static::assertSame(['sofa' => 1], $this->quantities($split->mainCart));
+    }
+
+    public function testEveryDeliveryModeSplitsLikeHybridWithoutAnAllowedPayment(): void
+    {
+        $cart = $this->cart(['sofa' => 3], [
+            ['main', null, ['sofa' => 1]],
+            ['delivery-2', null, ['sofa' => 1]],
+            ['delivery-3', self::AUSTRIA, ['sofa' => 1]],
+        ]);
+
+        $split = $this->splitter(SplitSettings::COUNTRY_ALL_SEPARATE, false)->split($cart, $this->context);
+
+        static::assertNotNull($split);
+        static::assertSame(['delivery-3'], array_map(static fn ($part) => $part->groupId, $split->parts));
+        static::assertSame(['sofa' => 2], $this->quantities($split->mainCart));
+    }
+
+    public function testEveryDeliveryModeWithOneDeliveryDoesNothing(): void
+    {
+        $cart = $this->cart(['sofa' => 1], [['main', null, ['sofa' => 1]]]);
+
+        static::assertNull($this->splitter(SplitSettings::COUNTRY_ALL_SEPARATE, true)->split($cart, $this->context));
+    }
+
+    private function splitter(string $mode = SplitSettings::COUNTRY_SEPARATE_ORDERS, bool $paymentAllowed = false): SeparateOrderSplitter
+    {
+        return new SeparateOrderSplitter(Fixtures::settings([
+            'countryMode' => $mode,
+            'separateOrderPaymentHandlers' => $paymentAllowed ? $this->context->getPaymentMethod()->getHandlerIdentifier() : '',
+        ]));
     }
 
     /**
@@ -176,7 +241,11 @@ class SeparateOrderSplitterTest extends TestCase
         }
 
         $home = $this->context->getShippingLocation();
-        $location = $home;
+        $address = new CustomerAddressEntity();
+        $address->setId('address-home-' . $groupId);
+        $address->setCountryId($home->getCountry()->getId());
+        $address->setCountry($home->getCountry());
+        $location = new ShippingLocation($home->getCountry(), $home->getState(), $address);
         if ($countryId !== null) {
             $country = new CountryEntity();
             $country->setId($countryId);

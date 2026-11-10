@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0
+
+- New mode for *Deliveries to addresses in another country*: **Separate orders: every delivery is its own order**, in the shipping country too (setting value `allSeparate`). Only the main delivery stays in the main order. With a payment method that doesn't allow separate orders, deliveries in the shipping country stay one order.
+- The existing mode `separateOrders` is now labelled **Hybrid: separate orders only for other countries**; its behaviour is unchanged.
+- The settings page explains all three modes; the planner marks every delivery that becomes a separate order.
+- Store API: `separateOrders.mode` and `separateOrders.separateGroupIds` in `GET /store-api/checkout/multi-delivery`.
+- New `SplitSettings::COUNTRY_ALL_SEPARATE` and `SplitSettings::separateOrdersEnabled()`.
+
 ## 1.1.0
 
 - New setting *Deliveries to addresses in another country*: keep deliveries in the shipping country (default, as before) or place each delivery to another country as a separate order, calculated by Shopware for that country. The settings page explains what happens.

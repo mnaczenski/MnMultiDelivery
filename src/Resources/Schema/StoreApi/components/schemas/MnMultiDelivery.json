@@ -97,7 +97,7 @@
                     },
                     "separateOrders": {
                         "type": "object",
-                        "description": "Deliveries to other countries (setting countryMode). When the cart has some, orders lists every order the checkout will place: the separate orders first, the main order last.",
+                        "description": "Separate orders (setting countryMode: separateOrders = hybrid, only deliveries to other countries; allSeparate = every delivery). When the cart has some, orders lists every order the checkout will place: the separate orders first, the main order last.",
                         "required": [
                             "enabled",
                             "paymentAllowed",
@@ -107,7 +107,17 @@
                         "properties": {
                             "enabled": {
                                 "type": "boolean",
-                                "description": "The merchant allows deliveries to other countries as separate orders."
+                                "description": "The merchant allows separate orders (countryMode separateOrders or allSeparate)."
+                            },
+                            "mode": {
+                                "type": "string",
+                                "enum": ["sameCountry", "separateOrders", "allSeparate"],
+                                "description": "The countryMode setting."
+                            },
+                            "separateGroupIds": {
+                                "type": "array",
+                                "items": { "type": "string" },
+                                "description": "Delivery groups that become separate orders; empty when orders is empty."
                             },
                             "paymentAllowed": {
                                 "type": "boolean",

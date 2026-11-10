@@ -6,15 +6,20 @@ use Mn\MultiDelivery\Cart\DeliveryGroupInfo;
 use Mn\MultiDelivery\Cart\DeliveryPlan;
 use Mn\MultiDelivery\Service\SplitSettings;
 use Shopware\Core\Checkout\Cart\Cart;
+use Shopware\Core\Checkout\Cart\Delivery\Struct\Delivery;
 use Shopware\Core\Checkout\Cart\LineItem\LineItem;
 use Shopware\Core\Checkout\Customer\Aggregate\CustomerAddress\CustomerAddressEntity;
 use Shopware\Core\Framework\Uuid\Uuid;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 
 /**
- * Divides a calculated cart along its deliveries: every delivery to an
- * address in another country than the shipping country becomes a cart of
- * its own, the rest stays in the main cart. The carts are not calculated;
+ * Divides a calculated cart along its deliveries. Hybrid (separateOrders):
+ * every delivery to an address in another country than the shipping country
+ * becomes a cart of its own, the rest stays in the main cart. Every delivery
+ * (allSeparate): only the main delivery in the shipping country stays in the
+ * main cart, every other delivery becomes a cart of its own. Without a
+ * payment method that allows separate orders, allSeparate splits like the
+ * hybrid mode, so deliveries in the shipping country stay one order. The carts are not calculated;
  * Shopware does that for each with the matching country when they are
  * previewed or placed.
  *
@@ -31,21 +36,29 @@ class SeparateOrderSplitter
     }
 
     /**
-     * @return SeparateOrderSplit|null null when the cart has no delivery to another country or separate orders are not enabled
+     * @return SeparateOrderSplit|null null when no delivery becomes a separate order or separate orders are not enabled
      */
     public function split(Cart $cart, SalesChannelContext $context): ?SeparateOrderSplit
     {
-        if ($this->settings->countryMode($context) !== SplitSettings::COUNTRY_SEPARATE_ORDERS) {
+        $mode = $this->settings->countryMode($context);
+        if ($mode === SplitSettings::COUNTRY_SAME) {
             return null;
         }
 
         $homeCountryId = $context->getShippingLocation()->getCountry()->getId();
         $rootOf = $this->rootIds($cart);
+        $keep = $mode === SplitSettings::COUNTRY_ALL_SEPARATE && $this->settings->separateOrderPaymentAllowed($context)
+            ? $this->mainDelivery($cart, $homeCountryId)
+            : null;
 
         $foreign = [];
         foreach ($cart->getDeliveries() as $delivery) {
             $address = $delivery->getLocation()->getAddress();
-            if (!$address instanceof CustomerAddressEntity || $delivery->getLocation()->getCountry()->getId() === $homeCountryId) {
+            if (!$address instanceof CustomerAddressEntity) {
+                continue;
+            }
+            $home = $delivery->getLocation()->getCountry()->getId() === $homeCountryId;
+            if ($keep === null ? $home : $delivery === $keep) {
                 continue;
             }
             $quantities = [];
@@ -112,6 +125,30 @@ class SeparateOrderSplitter
         }
 
         return new SeparateOrderSplit($main, $parts);
+    }
+
+    /**
+     * The delivery that stays in the main order when every delivery becomes
+     * its own order: the main group's delivery when it is in the shipping
+     * country, otherwise the first delivery there. With none in the shipping
+     * country, every delivery becomes a separate order.
+     */
+    private function mainDelivery(Cart $cart, string $homeCountryId): ?Delivery
+    {
+        $first = null;
+        foreach ($cart->getDeliveries() as $delivery) {
+            if ($delivery->getLocation()->getCountry()->getId() !== $homeCountryId) {
+                continue;
+            }
+            $info = $delivery->getExtension(DeliveryGroupInfo::EXTENSION);
+            $groupId = $info instanceof DeliveryGroupInfo ? $info->getGroupId() : DeliveryPlan::MAIN_GROUP;
+            if ($groupId === DeliveryPlan::MAIN_GROUP) {
+                return $delivery;
+            }
+            $first ??= $delivery;
+        }
+
+        return $first;
     }
 
     /**

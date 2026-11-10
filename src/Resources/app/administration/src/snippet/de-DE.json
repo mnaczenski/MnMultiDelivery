@@ -17,8 +17,11 @@
         "countryMode": {
             "sameTitle": "Nur Bestellungen innerhalb desselben Landes unterstützen (Standard)",
             "sameText": "Kunden können Lieferungen nur an ihre Adressen im Lieferland der Bestellung senden. Eine Bestellung, ein Land: Steuern, Preise und Versandregeln stimmen immer.",
-            "separateTitle": "Bestellungen in verschiedene Länder unterstützen (separate Bestellungen)",
+            "separateTitle": "Hybrid: separate Bestellungen nur für andere Länder",
             "separateText": "Kunden können auch Adressen in anderen Ländern wählen. Jede Lieferung in ein anderes Land wird beim Absenden als separate Bestellung aufgegeben; Lieferungen im Lieferland bleiben in der Hauptbestellung.",
+            "allTitle": "Separate Bestellungen: jede Lieferung ist eine eigene Bestellung",
+            "allText": "Jede Lieferung wird eine eigene Bestellung, auch innerhalb des Lieferlandes. Nur die Lieferung an die Lieferadresse bleibt in der Hauptbestellung. Sinnvoll, wenn Lager, ERP oder Versanddienstleister eine Adresse pro Bestellung erwarten. Mit einer Zahlungsart, die unten nicht aufgeführt ist, bleiben Lieferungen im Lieferland eine Bestellung (wie im Hybrid-Modus).",
+            "implicationsTitle": "Was separate Bestellungen bedeuten (Hybrid und jede Lieferung)",
             "taxes": "Shopware berechnet jede separate Bestellung für ihr eigenes Land: Mehrwertsteuer, Steuerbefreiungen, länderspezifische Preise und Versandregeln. Die Bestellbestätigungsseite zeigt die Summen jeder Bestellung und die Gesamtsumme.",
             "payment": "Jede Bestellung wird einzeln bezahlt, und nur die Hauptbestellung durchläuft den Zahlungsschritt. Separate Bestellungen gibt es daher nur mit den unten aufgeführten Zahlungsarten (standardmäßig Rechnung, Vorkasse, Nachnahme, Lastschrift); mit anderen Zahlungsarten bleiben Lieferungen im Lieferland.",
             "documents": "Jede Bestellung hat eine eigene Bestellnummer, Bestätigungsmail, Rechnung, einen eigenen Lieferschein und Bestellstatus und wird wie jede andere Bestellung an ERP-, Versand- und Buchhaltungssysteme übergeben.",

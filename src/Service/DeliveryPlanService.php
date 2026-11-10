@@ -164,15 +164,18 @@ class DeliveryPlanService
     }
 
     /**
-     * @return array{enabled: bool, paymentAllowed: bool, orders: list<array<string, mixed>>, totalPrice: float}
+     * @return array{enabled: bool, mode: string, paymentAllowed: bool, orders: list<array<string, mixed>>, separateGroupIds: list<string>, totalPrice: float}
      */
     private function describeSeparateOrders(Cart $cart, SalesChannelContext $context): array
     {
-        $enabled = $this->settings->countryMode($context) === SplitSettings::COUNTRY_SEPARATE_ORDERS;
+        $mode = $this->settings->countryMode($context);
+        $enabled = $mode !== SplitSettings::COUNTRY_SAME;
         $result = [
             'enabled' => $enabled,
+            'mode' => $mode,
             'paymentAllowed' => $enabled && $this->settings->separateOrderPaymentAllowed($context),
             'orders' => [],
+            'separateGroupIds' => [],
             'totalPrice' => 0.0,
         ];
 
@@ -184,6 +187,7 @@ class DeliveryPlanService
         $split = $calculated['split'];
         foreach ($split->parts as $part) {
             $result['orders'][] = $this->describeOrder($part->cart, $part->groupId, false, $part->address->getId(), $part->address->getCountry());
+            $result['separateGroupIds'][] = $part->groupId;
         }
         if ($split->hasMainOrder()) {
             $result['orders'][] = $this->describeOrder($split->mainCart, null, true, null, $context->getShippingLocation()->getCountry());

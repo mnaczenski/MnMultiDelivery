@@ -125,8 +125,13 @@
                 </option>
                 <option>
                     <id>separateOrders</id>
-                    <name>Support orders from different countries (separate orders)</name>
-                    <name lang="de-DE">Bestellungen in verschiedene Länder unterstützen (separate Bestellungen)</name>
+                    <name>Hybrid: separate orders only for other countries</name>
+                    <name lang="de-DE">Hybrid: separate Bestellungen nur für andere Länder</name>
+                </option>
+                <option>
+                    <id>allSeparate</id>
+                    <name>Separate orders: every delivery is its own order</name>
+                    <name lang="de-DE">Separate Bestellungen: jede Lieferung ist eine eigene Bestellung</name>
                 </option>
             </options>
         </input-field>

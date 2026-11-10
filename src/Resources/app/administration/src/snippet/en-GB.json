@@ -17,8 +17,11 @@
         "countryMode": {
             "sameTitle": "Only support orders from the same country (default)",
             "sameText": "Customers can send deliveries only to their addresses in the order's shipping country. One order, one country: taxes, prices and shipping rules are always right.",
-            "separateTitle": "Support orders from different countries (separate orders)",
+            "separateTitle": "Hybrid: separate orders only for other countries",
             "separateText": "Customers can also pick addresses in other countries. Each delivery to another country is placed as a separate order when the customer confirms; deliveries within the shipping country stay in the main order.",
+            "allTitle": "Separate orders: every delivery is its own order",
+            "allText": "Every delivery becomes an order of its own, also within the shipping country. Only the delivery to the shipping address stays in the main order. Use it when warehouses, ERP or carriers expect one address per order. With a payment method that isn't listed below, deliveries in the shipping country stay one order (as in the hybrid mode).",
+            "implicationsTitle": "What separate orders mean (hybrid and every delivery)",
             "taxes": "Each separate order is calculated by Shopware for its own country: VAT, tax-free rules, country-specific prices and shipping rules. The confirm page shows every order's totals and the sum.",
             "payment": "Each order is paid on its own, and only the main order goes through the payment step. Separate orders are therefore only offered with the payment methods listed below (by default invoice, prepayment, cash on delivery, direct debit); with other methods deliveries stay in the shipping country.",
             "documents": "Every order has its own order number, confirmation mail, invoice, delivery note and order state, and is exported to ERP, shipping and accounting tools like any other order.",

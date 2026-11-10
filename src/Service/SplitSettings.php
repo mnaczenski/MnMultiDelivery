@@ -20,8 +20,11 @@ class SplitSettings
     /** Deliveries stay in the shipping country (default). */
     public const COUNTRY_SAME = 'sameCountry';
 
-    /** A delivery to another country becomes its own order. */
+    /** Hybrid: a delivery to another country becomes its own order, deliveries in the shipping country stay in one order. */
     public const COUNTRY_SEPARATE_ORDERS = 'separateOrders';
+
+    /** Every delivery becomes its own order, in the shipping country too. */
+    public const COUNTRY_ALL_SEPARATE = 'allSeparate';
 
     private const PREFIX = 'MnMultiDelivery.config.';
 
@@ -97,17 +100,23 @@ class SplitSettings
     {
         $value = $this->systemConfig->getString(self::PREFIX . 'countryMode', $context->getSalesChannelId());
 
-        return $value === self::COUNTRY_SEPARATE_ORDERS ? $value : self::COUNTRY_SAME;
+        return \in_array($value, [self::COUNTRY_SEPARATE_ORDERS, self::COUNTRY_ALL_SEPARATE], true) ? $value : self::COUNTRY_SAME;
+    }
+
+    /** Whether the merchant lets deliveries become separate orders at all (hybrid or every delivery). */
+    public function separateOrdersEnabled(SalesChannelContext $context): bool
+    {
+        return $this->countryMode($context) !== self::COUNTRY_SAME;
     }
 
     /**
-     * Whether deliveries to another country may become separate orders right
-     * now: the merchant enabled it and the selected payment method has no
-     * online payment step (see separateOrderPaymentHandlers).
+     * Whether deliveries may become separate orders right now: the merchant
+     * enabled it (hybrid or every delivery) and the selected payment method
+     * has no online payment step (see separateOrderPaymentHandlers).
      */
     public function separateOrdersAllowed(SalesChannelContext $context): bool
     {
-        return $this->countryMode($context) === self::COUNTRY_SEPARATE_ORDERS
+        return $this->separateOrdersEnabled($context)
             && $this->separateOrderPaymentAllowed($context);
     }
 

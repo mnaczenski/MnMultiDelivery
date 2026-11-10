@@ -39,6 +39,20 @@ class SplitSettingsCountryModeTest extends TestCase
         static::assertFalse(Fixtures::settings(['countryMode' => SplitSettings::COUNTRY_SEPARATE_ORDERS])->separateOrdersAllowed($this->context(DefaultPayment::class)), 'no allowed handlers configured');
     }
 
+    public function testEveryDeliveryModeEnablesSeparateOrders(): void
+    {
+        $settings = Fixtures::settings([
+            'countryMode' => SplitSettings::COUNTRY_ALL_SEPARATE,
+            'separateOrderPaymentHandlers' => 'DefaultPayment',
+        ]);
+
+        static::assertSame(SplitSettings::COUNTRY_ALL_SEPARATE, $settings->countryMode($this->context(DefaultPayment::class)));
+        static::assertTrue($settings->separateOrdersEnabled($this->context(DefaultPayment::class)));
+        static::assertTrue($settings->separateOrdersAllowed($this->context(DefaultPayment::class)));
+        static::assertFalse($settings->separateOrdersAllowed($this->context('Swag\\PayPal\\Handler')));
+        static::assertFalse(Fixtures::settings()->separateOrdersEnabled($this->context(DefaultPayment::class)));
+    }
+
     public function testTheAddressPolicyFollowsTheCountryMode(): void
     {
         $context = $this->context(DefaultPayment::class);
