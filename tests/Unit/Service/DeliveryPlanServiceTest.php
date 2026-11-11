@@ -103,6 +103,33 @@ class DeliveryPlanServiceTest extends TestCase
         static::assertSame([], $plan->getAdjustments('availability'));
     }
 
+    public function testSettingsOnlyForDeliveriesThePlannerShows(): void
+    {
+        $plan = new DeliveryPlan(true, 'availability');
+        $service = $this->service($this->cart($plan, ['now' => ['chair' => 2], 'later' => ['chair' => 3]]));
+        $context = Generator::generateSalesChannelContext();
+        $address = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+
+        $service->setGroup($context, 'later', $address, null);
+        $service->setGroup($context, 'made-up', $address, null);
+
+        static::assertSame(['later'], $plan->getConfiguredGroupIds());
+    }
+
+    public function testTheNumberOfConfiguredDeliveriesIsLimited(): void
+    {
+        $plan = new DeliveryPlan(true, 'availability');
+        for ($i = 0; $i < DeliveryPlanService::MAX_CONFIGURED_GROUPS; ++$i) {
+            $plan->setGroupSettings('old-' . $i, null, null);
+        }
+        $service = $this->service($this->cart($plan, ['now' => ['chair' => 2]]));
+
+        $service->setGroup(Generator::generateSalesChannelContext(), 'now', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', null);
+
+        static::assertNotContains('now', $plan->getConfiguredGroupIds());
+        static::assertCount(DeliveryPlanService::MAX_CONFIGURED_GROUPS, $plan->getConfiguredGroupIds());
+    }
+
     public function testResetDropsTheAdjustments(): void
     {
         $plan = new DeliveryPlan(true, 'availability');

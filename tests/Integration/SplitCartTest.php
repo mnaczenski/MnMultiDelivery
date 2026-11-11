@@ -8,7 +8,10 @@ use Mn\MultiDelivery\Rule\DeliveryCountRule;
 use Mn\MultiDelivery\Strategy\DeliveryGroup;
 use Shopware\Core\Checkout\Cart\Cart;
 use Shopware\Core\Checkout\Cart\Rule\CartRuleScope;
+use Shopware\Core\Framework\Context;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\Rule\Rule;
+use Shopware\Core\Framework\Uuid\Uuid;
 
 class SplitCartTest extends IntegrationTestCase
 {
@@ -76,6 +79,35 @@ class SplitCartTest extends IntegrationTestCase
         $this->configure(['blockedPaymentHandlers' => $context->getPaymentMethod()->getHandlerIdentifier()]);
 
         static::assertCount(1, $this->calculate([$product => 3], $this->plan($product, 2), $context)->getDeliveries());
+    }
+
+    public function testShippingMethodsOfOtherSalesChannelsAreIgnored(): void
+    {
+        $product = $this->product('p.stock > 20');
+        $context = $this->context();
+        $repository = static::container()->get('shipping_method.repository');
+        \assert($repository instanceof EntityRepository);
+        $foreignId = Uuid::randomHex();
+        $repository->create([[
+            'id' => $foreignId,
+            'name' => 'MD CI not in this sales channel',
+            'technicalName' => 'md_ci_' . $foreignId,
+            'active' => true,
+            'deliveryTime' => ['name' => 'MD CI', 'min' => 1, 'max' => 2, 'unit' => 'day'],
+        ]], Context::createDefaultContext());
+
+        try {
+            $plan = $this->plan($product, 2);
+            $plan->setGroupSettings($plan->getManualGroups()[0], null, $foreignId);
+            $split = $this->calculate([$product => 3], $plan, $context);
+
+            static::assertCount(2, $split->getDeliveries());
+            foreach ($split->getDeliveries() as $delivery) {
+                static::assertNotSame($foreignId, $delivery->getShippingMethod()->getId());
+            }
+        } finally {
+            $repository->delete([['id' => $foreignId]], Context::createDefaultContext());
+        }
     }
 
     protected function plan(string $product, int $toSecond): DeliveryPlan

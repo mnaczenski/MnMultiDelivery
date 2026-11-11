@@ -27,6 +27,11 @@ use Shopware\Core\Checkout\Cart\LineItem\LineItem;
 use Shopware\Core\Checkout\Customer\Aggregate\CustomerAddress\CustomerAddressEntity;
 use Shopware\Core\Checkout\Payment\PaymentMethodEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
+use Shopware\Core\Framework\Context;
+use Shopware\Core\Checkout\Shipping\ShippingMethodCollection;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\EntitySearchResult;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\System\Country\CountryEntity;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use Shopware\Core\Test\Generator;
@@ -92,6 +97,7 @@ class SplitDeliveryProcessorTest extends TestCase
         $data = new CartDataCollection();
         $address = new CustomerAddressEntity();
         $address->setId('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+        $address->setCustomerId((string) $this->context()->getCustomer()?->getId());
         $address->setCountry(new CountryEntity());
         $data->set('mn-md-address-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', $address);
 
@@ -113,6 +119,51 @@ class SplitDeliveryProcessorTest extends TestCase
 
         static::assertNull($denied?->getLocation()->getAddress());
         static::assertSame('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', $allowed?->getLocation()->getAddress()?->getId());
+    }
+
+    public function testAddressesOfOtherCustomersAreNeverUsed(): void
+    {
+        $plan = $this->manualPlan();
+        $plan->setGroupSettings('delivery-2', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', null);
+        $address = new CustomerAddressEntity();
+        $address->setId('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+        $address->setCustomerId('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
+        $address->setCountry(new CountryEntity());
+        $data = new CartDataCollection();
+        $data->set('mn-md-address-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', $address);
+        $allow = new class implements DeliveryAddressPolicyInterface {
+            public function isAllowed(CustomerAddressEntity $address, SalesChannelContext $context): bool
+            {
+                return true;
+            }
+        };
+
+        static::assertNull($this->process($plan, null, null, [$allow], $data)->getDeliveries()->last()?->getLocation()->getAddress());
+    }
+
+    public function testOnlyActiveShippingMethodsOfTheSalesChannelAreLoaded(): void
+    {
+        $plan = $this->manualPlan();
+        $plan->setGroupSettings('delivery-2', null, 'cccccccccccccccccccccccccccccccc');
+        $cart = new Cart('token');
+        $cart->add(new LineItem('chair', LineItem::PRODUCT_LINE_ITEM_TYPE, 'chair', 3));
+        $cart->addExtension(DeliveryPlan::EXTENSION, $plan);
+
+        $criteria = null;
+        $shippingMethods = $this->createMock(EntityRepository::class);
+        $shippingMethods->expects(static::once())->method('search')->willReturnCallback(function (Criteria $given) use (&$criteria) {
+            $criteria = $given;
+
+            return new EntitySearchResult('shipping_method', 0, new ShippingMethodCollection(), null, $given, Context::createDefaultContext());
+        });
+        $context = $this->context();
+        $this->processor(shippingMethods: $shippingMethods)->collect(new CartDataCollection(), $cart, $context, new CartBehavior());
+
+        static::assertInstanceOf(Criteria::class, $criteria);
+        static::assertEquals(
+            [new EqualsFilter('active', true), new EqualsFilter('salesChannels.id', $context->getSalesChannelId())],
+            $criteria->getFilters(),
+        );
     }
 
     public function testAdjustmentsMoveQuantitiesBetweenAutomaticGroups(): void
@@ -200,8 +251,9 @@ class SplitDeliveryProcessorTest extends TestCase
 
     /**
      * @param list<DeliveryAddressPolicyInterface>|null $addressPolicies
+     * @param EntityRepository<ShippingMethodCollection>|null $shippingMethods
      */
-    private function processor(?EventDispatcher $dispatcher = null, ?ShippingCostPolicyInterface $costPolicy = null, ?array $addressPolicies = null): SplitDeliveryProcessor
+    private function processor(?EventDispatcher $dispatcher = null, ?ShippingCostPolicyInterface $costPolicy = null, ?array $addressPolicies = null, ?EntityRepository $shippingMethods = null): SplitDeliveryProcessor
     {
         $settings = Fixtures::settings();
 
@@ -210,7 +262,7 @@ class SplitDeliveryProcessorTest extends TestCase
             new StrategyRegistry([new ManualStrategy(), new AvailabilityStrategy()], $settings),
             $this->createMock(DeliveryCalculator::class),
             $this->createMock(EntityRepository::class),
-            $this->createMock(EntityRepository::class),
+            $shippingMethods ?? $this->createMock(EntityRepository::class),
             $settings,
             $costPolicy ?? $this->createMock(ShippingCostPolicyInterface::class),
             new DeliveryAddressPolicies($addressPolicies ?? []),

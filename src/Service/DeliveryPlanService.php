@@ -24,6 +24,9 @@ class DeliveryPlanService
 {
     public const MAX_MANUAL_GROUPS = 5;
 
+    /** Deliveries with their own address or shipping method, at most. */
+    public const MAX_CONFIGURED_GROUPS = 30;
+
     public function __construct(
         private readonly CartService $cartService,
         private readonly SplitGuard $guard,
@@ -57,12 +60,24 @@ class DeliveryPlanService
         });
     }
 
+    /**
+     * Address and shipping method of a delivery. Only for deliveries the
+     * planner shows (the first one, added ones, those of the current split),
+     * so the stored plan can't grow without limit. The address and shipping
+     * method are checked when the cart is calculated (SplitDeliveryProcessor).
+     */
     public function setGroup(SalesChannelContext $context, string $groupId, ?string $addressId, ?string $shippingMethodId): Cart
     {
-        return $this->change($context, DeliveryPlanChangedEvent::ACTION_GROUP, static function (DeliveryPlan $plan) use ($groupId, $addressId, $shippingMethodId): void {
-            if (preg_match('/^[A-Za-z0-9-]{1,64}$/', $groupId)) {
-                $plan->setGroupSettings($groupId, self::hexOrNull($addressId), self::hexOrNull($shippingMethodId));
+        return $this->change($context, DeliveryPlanChangedEvent::ACTION_GROUP, function (DeliveryPlan $plan, Cart $cart) use ($groupId, $addressId, $shippingMethodId): void {
+            $known = [DeliveryPlan::MAIN_GROUP, ...$plan->getManualGroups(), ...$this->deliveryGroupIds($cart)];
+            $configured = $plan->getConfiguredGroupIds();
+            if (!\in_array($groupId, $known, true)) {
+                return;
             }
+            if (!\in_array($groupId, $configured, true) && \count($configured) >= self::MAX_CONFIGURED_GROUPS) {
+                return;
+            }
+            $plan->setGroupSettings($groupId, self::hexOrNull($addressId), self::hexOrNull($shippingMethodId));
         });
     }
 

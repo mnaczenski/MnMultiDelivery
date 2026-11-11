@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.2
+
+Security review of the storefront and Store API endpoints.
+
+- **Shipping methods per delivery** are limited to active methods of the current sales channel. The planner accepted any shipping method id; Shopware's own checks block inactive methods and those whose availability rule doesn't match, but not methods of another sales channel (for example a free shipping method of a B2B channel). This also applies to separate orders, which take their shipping method from the delivery.
+- **Addresses per delivery** are only used when they belong to the logged-in customer, also when the cart's data was collected earlier (they were already loaded for the customer only).
+- **Delivery settings** (address, shipping method) are only stored for deliveries the planner shows, at most 30: made-up delivery ids grew the stored cart without limit.
+- Fixed the integration test of the order conversion, which failed since separate orders decorate Shopware's order route.
+
 ## 1.2.1
 
 - Fixed: placing separate orders failed on Shopware releases before 6.7.16 (`SalesChannelContextService::SHIPPING_ADDRESS` exists only since 6.7.16).

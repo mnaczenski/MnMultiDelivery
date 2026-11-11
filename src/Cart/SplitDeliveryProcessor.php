@@ -105,8 +105,13 @@ class SplitDeliveryProcessor implements CartProcessorInterface, CartDataCollecto
 
         if ($shippingMethodIds !== []) {
             // Same associations as Shopware's DeliveryProcessor, so DeliveryCalculator can price them.
+            // Only active methods of this sales channel: the ids come from the client, and unlike
+            // Shopware's context switch nothing else checks the assignment. Availability rules are
+            // checked by Shopware's DeliveryValidator for every delivery.
             $criteria = (new Criteria(array_values(array_unique($shippingMethodIds))))
-                ->addAssociations(['prices', 'deliveryTime', 'tax']);
+                ->addAssociations(['prices', 'deliveryTime', 'tax'])
+                ->addFilter(new EqualsFilter('active', true))
+                ->addFilter(new EqualsFilter('salesChannels.id', $context->getSalesChannelId()));
             foreach ($this->shippingMethodRepository->search($criteria, $context->getContext())->getEntities() as $method) {
                 $data->set(DeliveryProcessor::buildKey($method->getId()), $method);
             }
@@ -361,6 +366,7 @@ class SplitDeliveryProcessor implements CartProcessorInterface, CartDataCollecto
         if ($addressId !== null) {
             $address = $data->get(self::ADDRESS_KEY . $addressId);
             if ($address instanceof CustomerAddressEntity
+                && $address->getCustomerId() === $context->getCustomer()?->getId()
                 && $address->getCountry() !== null
                 && $this->addressPolicies->isAllowed($address, $context)) {
                 return ShippingLocation::createFromAddress($address);

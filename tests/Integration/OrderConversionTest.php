@@ -6,6 +6,7 @@ use Mn\MultiDelivery\Cart\DeliveryPlan;
 use Mn\MultiDelivery\Event\SplitOrderConvertedEvent;
 use Shopware\Core\Checkout\Cart\Order\OrderConversionContext;
 use Shopware\Core\Checkout\Cart\Order\OrderConverter;
+use Shopware\Core\Checkout\Cart\SalesChannel\AbstractCartOrderRoute;
 use Shopware\Core\Checkout\Cart\SalesChannel\CartOrderRoute;
 
 /**
@@ -34,8 +35,14 @@ class OrderConversionTest extends IntegrationTestCase
         };
         $dispatcher->addListener(SplitOrderConvertedEvent::class, $listener);
         try {
+            // the route may be decorated (by this plugin's separate orders, among others)
+            $route = static::container()->get(CartOrderRoute::class);
+            while ($route instanceof AbstractCartOrderRoute && !$route instanceof CartOrderRoute) {
+                $route = $route->getDecorated();
+            }
+            \assert($route instanceof CartOrderRoute);
             /** @var OrderConverter $converter */
-            $converter = $this->property($this->property(static::service(CartOrderRoute::class), 'orderPersister'), 'converter');
+            $converter = $this->property($this->property($route, 'orderPersister'), 'converter');
             $order = $converter->convertToOrder($cart, $context, new OrderConversionContext());
         } finally {
             $dispatcher->removeListener(SplitOrderConvertedEvent::class, $listener);
