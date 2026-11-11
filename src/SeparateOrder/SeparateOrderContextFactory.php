@@ -34,7 +34,8 @@ class SeparateOrderContextFactory
         unset(
             $options['expired'],
             $options['token'],
-            $options[SalesChannelContextService::SHIPPING_ADDRESS],
+            // SalesChannelContextService::SHIPPING_ADDRESS, a constant only since Shopware 6.7.16
+            $options['sw-shipping-address'],
             $options[SalesChannelContextService::RULE_IDS],
             $options[SalesChannelContextService::AREA_RULE_IDS],
         );

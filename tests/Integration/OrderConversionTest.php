@@ -28,14 +28,14 @@ class OrderConversionTest extends IntegrationTestCase
         $cart = $this->calculate([$product => 3], $plan, $context);
 
         $events = [];
-        $dispatcher = static::container()->get('event_dispatcher');
+        $dispatcher = static::dispatcher();
         $listener = static function (SplitOrderConvertedEvent $event) use (&$events): void {
             $events[] = $event;
         };
         $dispatcher->addListener(SplitOrderConvertedEvent::class, $listener);
         try {
             /** @var OrderConverter $converter */
-            $converter = $this->property($this->property(static::container()->get(CartOrderRoute::class), 'orderPersister'), 'converter');
+            $converter = $this->property($this->property(static::service(CartOrderRoute::class), 'orderPersister'), 'converter');
             $order = $converter->convertToOrder($cart, $context, new OrderConversionContext());
         } finally {
             $dispatcher->removeListener(SplitOrderConvertedEvent::class, $listener);

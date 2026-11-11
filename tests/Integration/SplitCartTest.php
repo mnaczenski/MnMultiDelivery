@@ -33,7 +33,7 @@ class SplitCartTest extends IntegrationTestCase
     public function testPartialStockShipsTheAvailablePartNow(): void
     {
         $product = $this->product('p.stock BETWEEN 1 AND 3');
-        $stock = (int) static::container()->get(\Doctrine\DBAL\Connection::class)->fetchOne('SELECT stock FROM product WHERE id = UNHEX(?)', [$product]);
+        $stock = (int) static::service(\Doctrine\DBAL\Connection::class)->fetchOne('SELECT stock FROM product WHERE id = UNHEX(?)', [$product]);
 
         $cart = $this->calculate([$product => $stock + 2], new DeliveryPlan(true, 'availability'), $this->context());
 
@@ -53,7 +53,7 @@ class SplitCartTest extends IntegrationTestCase
     public function testAllocationListenersChangeRealCarts(): void
     {
         $product = $this->product('p.stock > 20');
-        $dispatcher = static::container()->get('event_dispatcher');
+        $dispatcher = static::dispatcher();
         $listener = static function (DeliveryAllocationEvent $event) use ($product): void {
             $event->setAllocation($event->getAllocation()
                 ->withGroup(new DeliveryGroup('project-group', 'project'))
@@ -99,7 +99,7 @@ class SplitCartTest extends IntegrationTestCase
      */
     protected function groupIds(Cart $cart): array
     {
-        return array_values(array_map(static fn ($delivery) => $delivery->getExtension('mnDeliveryGroup')?->getGroupId() ?? '-', $cart->getDeliveries()->getElements()));
+        return array_values(array_map(static fn ($delivery) => $delivery->getExtensionOfType('mnDeliveryGroup', \Mn\MultiDelivery\Cart\DeliveryGroupInfo::class)?->getGroupId() ?? '-', $cart->getDeliveries()->getElements()));
     }
 
     private function positionTotal(Cart $cart): float

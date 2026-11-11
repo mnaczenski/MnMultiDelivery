@@ -14,6 +14,7 @@ use Shopware\Core\Framework\Uuid\Uuid;
 use Shopware\Core\System\SalesChannel\Context\SalesChannelContextFactory;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use Shopware\Core\System\SystemConfig\MemoizedSystemConfigLoader;
+use Shopware\Core\System\SystemConfig\Store\MemoizedSystemConfigStore;
 use Shopware\Core\System\SystemConfig\SystemConfigService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Dotenv\Dotenv;
@@ -42,13 +43,40 @@ abstract class IntegrationTestCase extends TestCase
         return $id;
     }
 
+    /**
+     * A service from the container, typed.
+     *
+     * @template T of object
+     *
+     * @param class-string<T> $id
+     *
+     * @return T
+     */
+    protected static function service(string $id): object
+    {
+        $service = static::container()->get($id);
+        \assert($service instanceof $id);
+
+        return $service;
+    }
+
+    protected static function dispatcher(): \Symfony\Component\EventDispatcher\EventDispatcherInterface
+    {
+        $dispatcher = static::container()->get('event_dispatcher');
+        \assert($dispatcher instanceof \Symfony\Component\EventDispatcher\EventDispatcherInterface);
+
+        return $dispatcher;
+    }
+
     protected static function container(): ContainerInterface
     {
         if (self::$kernel === null) {
             $shopwareDir = getenv('SHOPWARE_DIR') ?: \dirname(__DIR__, 5);
             (new Dotenv())->usePutenv()->bootEnv($shopwareDir . '/.env');
             $classLoader = require $shopwareDir . '/vendor/autoload.php';
-            self::$kernel = KernelFactory::create(environment: getenv('APP_ENV') ?: 'prod', debug: false, classLoader: $classLoader);
+            $kernel = KernelFactory::create(environment: getenv('APP_ENV') ?: 'prod', debug: false, classLoader: $classLoader);
+            \assert($kernel instanceof KernelInterface);
+            self::$kernel = $kernel;
             self::$kernel->boot();
         }
 
@@ -87,7 +115,7 @@ abstract class IntegrationTestCase extends TestCase
     {
         $options = $customerId !== null ? ['customerId' => $customerId] : [];
 
-        return static::container()->get(SalesChannelContextFactory::class)->create(Uuid::randomHex(), static::salesChannelId(), $options);
+        return static::service(SalesChannelContextFactory::class)->create(Uuid::randomHex(), static::salesChannelId(), $options);
     }
 
     /**
@@ -114,7 +142,7 @@ abstract class IntegrationTestCase extends TestCase
      */
     protected function product(string $stockCondition): string
     {
-        $id = static::container()->get(Connection::class)->fetchOne(
+        $id = static::service(Connection::class)->fetchOne(
             'SELECT LOWER(HEX(p.id)) FROM product p
              INNER JOIN product_visibility pv ON pv.product_id = p.id AND pv.sales_channel_id = UNHEX(:salesChannel)
              WHERE p.parent_id IS NULL AND p.child_count = 0 AND p.active = 1 AND COALESCE(p.is_closeout, 0) = 0 AND ' . $stockCondition . '
@@ -130,7 +158,7 @@ abstract class IntegrationTestCase extends TestCase
 
     protected function calculator(): CartCalculator
     {
-        return $this->property(static::container()->get(CartService::class), 'calculator');
+        return $this->property(static::service(CartService::class), 'calculator');
     }
 
     protected function property(object $object, string $name): mixed
@@ -153,9 +181,12 @@ abstract class IntegrationTestCase extends TestCase
         return $base[static::salesChannelId()] ??= $this->loader()->load(static::salesChannelId());
     }
 
-    private function memoizedConfig(): object
+    private function memoizedConfig(): MemoizedSystemConfigStore
     {
-        return $this->property($this->loader(), 'memoizedSystemConfigStore');
+        $store = $this->property($this->loader(), 'memoizedSystemConfigStore');
+        \assert($store instanceof MemoizedSystemConfigStore);
+
+        return $store;
     }
 
     private function loader(): MemoizedSystemConfigLoader

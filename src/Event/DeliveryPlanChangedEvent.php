@@ -38,7 +38,10 @@ class DeliveryPlanChangedEvent extends Event implements ShopwareSalesChannelEven
      */
     public function getAction(): string
     {
-        return $this->action;
+        /** @var self::ACTION_* $action set by the constructor from these constants */
+        $action = $this->action;
+
+        return $action;
     }
 
     public function getPlan(): DeliveryPlan

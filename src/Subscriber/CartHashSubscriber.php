@@ -36,13 +36,14 @@ class CartHashSubscriber implements EventSubscriberInterface
                 $positions[$position->getIdentifier()] = $position->getQuantity();
             }
             $layout[] = [
-                'group' => $delivery->getExtension(DeliveryGroupInfo::EXTENSION)?->getGroupId(),
+                'group' => $delivery->getExtensionOfType(DeliveryGroupInfo::EXTENSION, DeliveryGroupInfo::class)?->getGroupId(),
                 'address' => $delivery->getLocation()->getAddress()?->getId(),
                 'shippingMethod' => $delivery->getShippingMethod()->getId(),
                 'positions' => $positions,
             ];
         }
 
-        $event->getHashStruct()->addExtension('mnMultiDelivery', new ArrayStruct($layout));
+        // The layout list itself is hashed; changing its shape would invalidate open checkouts.
+        $event->getHashStruct()->addExtension('mnMultiDelivery', new ArrayStruct($layout)); // @phpstan-ignore argument.type
     }
 }

@@ -39,7 +39,8 @@ class WarehouseStrategy implements DeliverySplitStrategyInterface
 
     public function isAvailable(SalesChannelContext $context): bool
     {
-        if (!class_exists(self::LICENSE_CLASS) || !\call_user_func([self::LICENSE_CLASS, 'get'], self::LICENSE_TOGGLE)) {
+        // Shopware Commercial is optional, so its License class is called by name.
+        if (!class_exists(self::LICENSE_CLASS) || !\call_user_func([self::LICENSE_CLASS, 'get'], self::LICENSE_TOGGLE)) { // @phpstan-ignore argument.type
             return false;
         }
 

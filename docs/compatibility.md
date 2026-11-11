@@ -39,4 +39,20 @@ Everything marked `Public API: stable within a major version` in its docblock, p
 - **Minor (1.x):** new features and new extension points. Nothing public is removed or changed incompatibly.
 - **Major (2.0):** may remove or change public API. Anything removed is first marked `@deprecated` for at least one minor version, with the replacement named in the docblock and the changelog.
 
-Each minor version supports the Shopware minor versions named in `composer.json` (currently `~6.7.0`). Raising the minimum Shopware version is announced in the changelog.
+Each minor version supports the Shopware versions named in `composer.json` (currently `~6.7.14`: Shopware 6.7.14 and newer 6.7 releases). Raising the minimum Shopware version is announced in the changelog.
+
+## How compatibility is checked
+
+Every push and pull request runs `.github/workflows/tests.yml`:
+
+- **PHPStan (level 8) and the unit tests** against the lowest and the highest installable Shopware 6.7, on PHP 8.2 to 8.4.
+- **Integration tests in an installed shop** for Shopware 6.7.14.0 (the minimum), 6.7.16.0 (the latest release) and `trunk` (the next minor; allowed to fail, as an early warning).
+- **The administration internals the plugin overrides** (`tests/ci/admin-overrides.json`) are checked against each of these versions. The admin extension builds on a computed property and a Twig block of `sw-order-detail`; if Shopware renames one, the Deliveries tab would silently disappear, and this check fails instead.
+
+Known dependencies on Shopware internals:
+
+| Where | Depends on | If it changes |
+|---|---|---|
+| Administration | `sw-order-detail`: `orderDetailTabs`, block `sw_order_detail_content_tabs_extension` (since 6.7.14) | the Deliveries tab is missing; caught by the override check |
+| Delivery note per delivery | `DocumentOrderCriteriaEvent`, `DeliveryNoteOrdersEvent` | Shopware plans to replace them in 6.9 |
+| Separate orders | the context persister's option keys (`sw-shipping-address`, rule ids) | a separate order could keep the main address; covered by the integration tests |

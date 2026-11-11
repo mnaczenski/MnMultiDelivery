@@ -31,7 +31,7 @@ class WarehouseStrategyParityTest extends TestCase
         $ours = (new \ReflectionMethod(WarehouseStrategy::class, 'allocateProduct'))
             ->invoke(new WarehouseStrategy($this->createMock(Connection::class)), $quantity, $stocks);
 
-        $commercial = (new \ReflectionClass(self::COMMERCIAL))->newInstanceWithoutConstructor();
+        $commercial = (new \ReflectionClass(self::COMMERCIAL))->newInstanceWithoutConstructor(); // @phpstan-ignore argument.type (Commercial is optional)
         $rows = (new \ReflectionMethod(self::COMMERCIAL, 'calculateOrderStocks'))
             ->invoke($commercial, ['p' => ['quantity' => $quantity]], ['p' => $stocks]);
         $theirs = [];

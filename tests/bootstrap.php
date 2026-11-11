@@ -1,18 +1,33 @@
 <?php declare(strict_types=1);
 
 /*
- * Unit tests run against the Shopware installation the plugin lives in
- * (custom/plugins/MnMultiDelivery) or the one in SHOPWARE_DIR.
- * No database or kernel is needed.
+ * The tests need Shopware's classes. They use, in this order:
+ *
+ * - SHOPWARE_DIR: the root of a Shopware installation;
+ * - the installation the plugin lives in (custom/plugins/MnMultiDelivery);
+ * - the plugin's own vendor directory (composer install in the plugin, as in CI).
+ *
+ * The unit tests need no database or kernel; the integration tests need an
+ * installation with the plugin active (see tests/Integration/IntegrationTestCase.php).
  */
-$shopwareDir = getenv('SHOPWARE_DIR') ?: dirname(__DIR__, 4);
-$autoload = $shopwareDir . '/vendor/autoload.php';
-if (!is_file($autoload)) {
-    fwrite(\STDERR, "Shopware not found at {$shopwareDir}. Set SHOPWARE_DIR to the shop root.\n");
-    exit(1);
+$candidates = array_filter([
+    getenv('SHOPWARE_DIR') ?: null,
+    dirname(__DIR__, 4),
+    dirname(__DIR__),
+]);
+
+foreach ($candidates as $root) {
+    $autoload = $root . '/vendor/autoload.php';
+    // A shop has Shopware in vendor/, the Shopware repository (CI) in src/Core.
+    if (is_file($autoload) && (is_dir($root . '/vendor/shopware/core') || is_dir($root . '/src/Core'))) {
+        $classLoader = require $autoload;
+        $classLoader->addPsr4('Mn\\MultiDelivery\\', dirname(__DIR__) . '/src');
+        $classLoader->addPsr4('Mn\\MultiDelivery\\Tests\\', __DIR__);
+        $classLoader->addPsr4('Mn\\MultiDeliveryExample\\', dirname(__DIR__) . '/examples/MnMultiDeliveryExample/src');
+
+        return;
+    }
 }
 
-$classLoader = require $autoload;
-$classLoader->addPsr4('Mn\\MultiDelivery\\', dirname(__DIR__) . '/src');
-$classLoader->addPsr4('Mn\\MultiDelivery\\Tests\\', __DIR__);
-$classLoader->addPsr4('Mn\\MultiDeliveryExample\\', dirname(__DIR__) . '/examples/MnMultiDeliveryExample/src');
+fwrite(\STDERR, "Shopware not found. Set SHOPWARE_DIR to a shop root, or run composer install in the plugin.\n");
+exit(1);

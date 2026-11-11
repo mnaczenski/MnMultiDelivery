@@ -34,7 +34,7 @@ Lets customers split one order into several deliveries on the checkout confirm p
 
 ## Requirements
 
-- Shopware 6.7 (tested with 6.7.16), PHP 8.2 or newer
+- Shopware 6.7.14 or newer 6.7 releases (tested in CI with 6.7.14, 6.7.16 and the next minor), PHP 8.2 or newer
 - Optional: SwagCommercial with Multi-Warehouse for the warehouse rule
 
 ## Installation
@@ -391,7 +391,12 @@ In the plain-text version, end every text line with output (`{{ }}`), not a tag:
 ## Development
 
 ```bash
-# unit tests, from the plugin directory inside a Shopware installation (no database needed)
+# without a shop: Shopware and the dev tools from Composer
+composer install
+composer test                               # unit tests
+composer phpstan                            # PHPStan, level 8
+
+# unit tests from the plugin directory inside a Shopware installation (no database needed)
 php phpunit.phar --testsuite unit          # or: SHOPWARE_DIR=/path/to/shop php phpunit.phar --testsuite unit
 
 # integration tests against the installation, with the plugin active

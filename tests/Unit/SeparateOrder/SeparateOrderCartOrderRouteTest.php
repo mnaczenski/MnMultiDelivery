@@ -158,7 +158,7 @@ class SeparateOrderCartOrderRouteTest extends TestCase
 
         $calculator = $this->createMock(SeparateOrderCalculator::class);
         $contexts = [];
-        foreach ($split?->parts ?? [] as $part) {
+        foreach ($split->parts ?? [] as $part) {
             $contexts[$part->groupId] = Generator::generateSalesChannelContext(token: 'context-' . $part->groupId);
         }
         $calculator->method('calculate')->willReturn($split === null ? null : ['split' => $split, 'contexts' => $contexts]);

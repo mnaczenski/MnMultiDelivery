@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.1
+
+- Fixed: placing separate orders failed on Shopware releases before 6.7.16 (`SalesChannelContextService::SHIPPING_ADDRESS` exists only since 6.7.16).
+- Requires Shopware 6.7.14 or newer. The administration's Deliveries tab builds on `sw-order-detail` internals that exist since 6.7.14; `composer.json` promised `~6.7.0`.
+- Continuous integration: PHPStan level 8 and the unit tests against the lowest and highest Shopware 6.7 on PHP 8.2 to 8.4; integration tests in installed shops (6.7.14.0, 6.7.16.0, trunk) with seeded test data; a check that the administration internals the plugin overrides still exist. See `docs/compatibility.md`.
+- The tests also run without a shop (`composer install` in the plugin, `composer test`).
+
 ## 1.2.0
 
 - New mode for *Deliveries to addresses in another country*: **Separate orders: every delivery is its own order**, in the shipping country too (setting value `allSeparate`). Only the main delivery stays in the main order. With a payment method that doesn't allow separate orders, deliveries in the shipping country stay one order.

@@ -10,7 +10,7 @@ use Shopware\Core\System\SalesChannel\StoreApiResponse;
  *
  * Public API: stable within a major version.
  *
- * @extends StoreApiResponse<ArrayStruct<string, mixed>>
+ * @extends StoreApiResponse<ArrayStruct<array<string, mixed>>>
  */
 class DeliveryPlanRouteResponse extends StoreApiResponse
 {
@@ -27,7 +27,7 @@ class DeliveryPlanRouteResponse extends StoreApiResponse
      */
     public function getData(): array
     {
-        /** @var ArrayStruct<string, mixed> $struct */
+        /** @var ArrayStruct<array<string, mixed>> $struct */
         $struct = $this->getObject();
 
         return $struct->all();

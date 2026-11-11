@@ -72,6 +72,7 @@ class DeliveryTimeStrategy implements DeliverySplitStrategyInterface
 
         // Bands: a part joins the current band when it starts within the configured days of the band's start.
         $groupDays = $this->settings->deliveryTimeGroupDays($context);
+        /** @var list<array{start: \DateTimeImmutable, parts: non-empty-list<array{string, int, \DateTimeImmutable, bool}>}> $bands */
         $bands = [];
         foreach ($parts as $part) {
             $band = array_key_last($bands);
@@ -84,9 +85,10 @@ class DeliveryTimeStrategy implements DeliverySplitStrategyInterface
 
         // Too many bands: the latest ones ship together.
         $max = $this->settings->deliveryTimeMaxDeliveries($context);
-        while (\count($bands) > $max) {
+        while (\count($bands) > $max && \count($bands) > 1) {
             $last = array_pop($bands);
-            $bands[array_key_last($bands)]['parts'] = [...$bands[array_key_last($bands)]['parts'], ...$last['parts']];
+            $previous = \count($bands) - 1;
+            $bands[$previous]['parts'] = [...$bands[$previous]['parts'], ...$last['parts']];
         }
 
         $groups = [];

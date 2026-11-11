@@ -67,7 +67,9 @@ class SplitDeliveryProcessorTest extends TestCase
     {
         $dispatcher = new EventDispatcher();
         $dispatcher->addListener(SplitDeliveriesBuiltEvent::class, static function (SplitDeliveriesBuiltEvent $event): void {
-            $event->setDeliveries(new DeliveryCollection([$event->getDeliveries()->first()]));
+            $first = $event->getDeliveries()->first();
+            \assert($first !== null);
+            $event->setDeliveries(new DeliveryCollection([$first]));
         });
 
         $cart = $this->process($this->manualPlan(), $dispatcher);
@@ -181,7 +183,7 @@ class SplitDeliveryProcessorTest extends TestCase
             foreach ($delivery->getPositions() as $position) {
                 $positions[$position->getIdentifier()] = $position->getQuantity();
             }
-            $layout[] = [$delivery->getExtension('mnDeliveryGroup')?->getGroupId() ?? '-', $positions];
+            $layout[] = [$delivery->getExtensionOfType('mnDeliveryGroup', \Mn\MultiDelivery\Cart\DeliveryGroupInfo::class)?->getGroupId() ?? '-', $positions];
         }
 
         return $layout;

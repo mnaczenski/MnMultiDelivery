@@ -1,0 +1,67 @@
+name: Tests
+
+on:
+    push:
+        branches: [main]
+        tags: ['v*']
+    pull_request:
+
+jobs:
+    static:
+        name: PHPStan and unit tests (${{ matrix.dependencies }} Shopware 6.7, PHP ${{ matrix.php }})
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - { php: '8.2', dependencies: lowest }
+                    - { php: '8.3', dependencies: highest }
+                    - { php: '8.4', dependencies: highest }
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ matrix.php }}
+                  extensions: intl, pdo_mysql, zip, gd
+                  coverage: none
+
+            - name: Install Shopware and the dev tools (${{ matrix.dependencies }} versions)
+              run: composer update --no-interaction --no-progress ${{ matrix.dependencies == 'lowest' && '--prefer-lowest' || '' }}
+
+            - name: Shopware version under test
+              run: composer show shopware/core | grep -E '^versions'
+
+            - name: PHPStan
+              run: composer phpstan -- --no-progress
+
+            - name: Unit tests
+              run: composer test
+
+    integration:
+        name: Integration tests (Shopware ${{ matrix.shopware }})
+        runs-on: ubuntu-latest
+        continue-on-error: ${{ matrix.shopware == 'trunk' }}
+        strategy:
+            fail-fast: false
+            matrix:
+                # lowest version composer.json promises, latest release, next minor (early warning)
+                shopware: ['v6.7.14.0', 'v6.7.16.0', 'trunk']
+        steps:
+            - uses: shopware/github-actions/setup-extension@main
+              with:
+                  extensionName: MnMultiDelivery
+                  shopwareVersion: ${{ matrix.shopware }}
+                  install: true
+                  # older releases may have known vulnerabilities; fine for a throwaway test shop
+                  allow-insecure-versions: true
+
+            - name: Administration internals the plugin overrides still exist
+              run: php custom/plugins/MnMultiDelivery/tests/ci/check-admin-overrides.php src/Administration/Resources/app/administration/src
+
+            - name: Test data
+              run: php custom/plugins/MnMultiDelivery/tests/ci/seed.php "$PWD" >> "$GITHUB_ENV"
+
+            - name: Integration tests
+              working-directory: custom/plugins/MnMultiDelivery
+              run: ../../../vendor/bin/phpunit --testsuite integration

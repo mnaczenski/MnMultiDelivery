@@ -99,7 +99,8 @@ class DeliveryNoteSubscriber implements EventSubscriberInterface
 
         $order->setLineItems($narrowed);
         $order->setDeliveries(new OrderDeliveryCollection([$delivery]));
-        if (method_exists($order, 'setPrimaryOrderDelivery')) {
+        // Not available in every 6.7 release.
+        if (method_exists($order, 'setPrimaryOrderDelivery')) { // @phpstan-ignore function.alreadyNarrowedType
             $order->setPrimaryOrderDelivery($delivery);
         }
     }
