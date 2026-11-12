@@ -28,6 +28,7 @@ use Shopware\Core\Checkout\Customer\Aggregate\CustomerAddress\CustomerAddressEnt
 use Shopware\Core\Checkout\Payment\PaymentMethodEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\Context;
+use Shopware\Core\Framework\Struct\ArrayStruct;
 use Shopware\Core\Checkout\Shipping\ShippingMethodCollection;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\EntitySearchResult;
@@ -51,6 +52,24 @@ class SplitDeliveryProcessorTest extends TestCase
     public function testWithoutAPlanTheCartKeepsOneDelivery(): void
     {
         static::assertCount(1, $this->process(null)->getDeliveries());
+    }
+
+    public function testRemembersTheCostsOfTheSingleDeliveryItReplaced(): void
+    {
+        $cart = $this->process($this->manualPlan());
+
+        $single = $cart->getExtension(SplitDeliveryProcessor::SINGLE_DELIVERY_EXTENSION);
+        static::assertInstanceOf(ArrayStruct::class, $single);
+        static::assertSame(4.9, $single->get('shippingCosts'));
+    }
+
+    public function testForgetsTheSingleDeliveryWhenTheCartIsNoLongerSplit(): void
+    {
+        $plan = $this->manualPlan();
+        $plan->setEnabled(false);
+        $cart = $this->process($plan, null, null, null, null, true);
+
+        static::assertFalse($cart->hasExtension(SplitDeliveryProcessor::SINGLE_DELIVERY_EXTENSION));
     }
 
     public function testTheAllocationEventCanChangeTheSplit(): void
@@ -208,11 +227,15 @@ class SplitDeliveryProcessorTest extends TestCase
         ?ShippingCostPolicyInterface $costPolicy = null,
         ?array $addressPolicies = null,
         ?CartDataCollection $data = null,
+        bool $previouslySplit = false,
     ): Cart {
         $cart = new Cart('token');
         $cart->add(new LineItem('sofa', LineItem::PRODUCT_LINE_ITEM_TYPE, 'sofa', 1));
         $cart->add(new LineItem('chair', LineItem::PRODUCT_LINE_ITEM_TYPE, 'chair', 3));
-        $cart->setDeliveries(new DeliveryCollection([Fixtures::delivery('main', ['sofa' => 1, 'chair' => 3])]));
+        $cart->setDeliveries(new DeliveryCollection([Fixtures::delivery('main', ['sofa' => 1, 'chair' => 3], 4.9)]));
+        if ($previouslySplit) {
+            $cart->addArrayExtension(SplitDeliveryProcessor::SINGLE_DELIVERY_EXTENSION, ['shippingCosts' => 4.9]);
+        }
         if ($plan !== null) {
             $cart->addExtension(DeliveryPlan::EXTENSION, $plan);
         }

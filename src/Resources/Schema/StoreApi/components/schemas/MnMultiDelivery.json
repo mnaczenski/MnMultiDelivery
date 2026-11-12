@@ -82,6 +82,11 @@
                         },
                         "description": "Display number per group id."
                     },
+                    "extraShippingCosts": {
+                        "type": "number",
+                        "nullable": true,
+                        "description": "What the split adds to the shipping costs, compared with a single delivery: what the customer saves by shipping everything together. Null when the cart isn't split."
+                    },
                     "shippingCountryId": {
                         "type": "string",
                         "pattern": "^[0-9a-f]{32}$",

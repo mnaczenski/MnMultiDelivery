@@ -56,6 +56,14 @@ class SplitSettings
      * The plan of a cart the customer has not touched yet: split automatically
      * with the default strategy when the merchant enabled that.
      */
+    /**
+     * Whether the cart page mentions the deliveries (on unless switched off).
+     */
+    public function cartHint(SalesChannelContext $context): bool
+    {
+        return (bool) ($this->systemConfig->get(self::PREFIX . 'cartHint', $context->getSalesChannelId()) ?? true);
+    }
+
     public function defaultPlan(SalesChannelContext $context): DeliveryPlan
     {
         return new DeliveryPlan(

@@ -23,6 +23,7 @@ use Mn\MultiDelivery\Strategy\ManualStrategy;
 use Mn\MultiDelivery\Strategy\StrategyRegistry;
 use Mn\MultiDelivery\Strategy\WarehouseStrategy;
 use Mn\MultiDelivery\Subscriber\CartHashSubscriber;
+use Mn\MultiDelivery\Subscriber\CartPageSubscriber;
 use Mn\MultiDelivery\Subscriber\ConfirmPageSubscriber;
 use Mn\MultiDelivery\Subscriber\DeliveryNoteSubscriber;
 use Mn\MultiDelivery\Subscriber\OrderConversionSubscriber;
@@ -38,7 +39,10 @@ use Shopware\Core\Checkout\Cart\SalesChannel\CartOrderRoute;
 use Shopware\Core\Checkout\Cart\SalesChannel\CartService;
 use Shopware\Core\Checkout\Cart\Tax\TaxCalculator;
 use Shopware\Core\Checkout\Customer\SalesChannel\ListAddressRoute;
+use Shopware\Core\Checkout\Customer\SalesChannel\UpsertAddressRoute;
 use Shopware\Core\Framework\Adapter\Translation\Translator;
+use Shopware\Core\System\Country\SalesChannel\CountryRoute;
+use Shopware\Core\System\Salutation\SalesChannel\SalutationRoute;
 use Shopware\Core\Framework\Adapter\Twig\TemplateFinder;
 use Shopware\Core\System\SalesChannel\Context\SalesChannelContextFactory;
 use Shopware\Core\System\SalesChannel\Context\SalesChannelContextPersister;
@@ -142,7 +146,17 @@ return static function (ContainerConfigurator $container): void {
 
     // Subscribers
     $services->set(ConfirmPageSubscriber::class)
-        ->args([service(SplitGuard::class), service(DeliveryPlanService::class), service(ListAddressRoute::class), service(DeliveryAddressPolicies::class)])
+        ->args([
+            service(SplitGuard::class),
+            service(DeliveryPlanService::class),
+            service(ListAddressRoute::class),
+            service(DeliveryAddressPolicies::class),
+            service(CountryRoute::class),
+            service(SalutationRoute::class),
+        ])
+        ->tag('kernel.event_subscriber');
+    $services->set(CartPageSubscriber::class)
+        ->args([service(SplitGuard::class), service(SplitSettings::class)])
         ->tag('kernel.event_subscriber');
     $services->set(OrderConversionSubscriber::class)
         ->args([service('event_dispatcher')])
@@ -169,7 +183,7 @@ return static function (ContainerConfigurator $container): void {
     // Storefront and Store API
     $services->set(DeliveryPlanController::class)
         ->public()
-        ->args([service(DeliveryPlanService::class), service(CheckoutConfirmPageLoader::class)])
+        ->args([service(DeliveryPlanService::class), service(CheckoutConfirmPageLoader::class), service(UpsertAddressRoute::class), service(DeliveryAddressPolicies::class)])
         ->call('setContainer', [service('service_container')]);
 
     $services->set(DeliveryPlanRoute::class)

@@ -5,6 +5,7 @@ namespace Mn\MultiDelivery\Tests\Unit\Service;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Mn\MultiDelivery\Cart\DeliveryPlan;
+use Mn\MultiDelivery\Cart\SplitDeliveryProcessor;
 use Mn\MultiDelivery\Event\DeliveryPlanChangedEvent;
 use Mn\MultiDelivery\Service\DeliveryPlanService;
 use Mn\MultiDelivery\Service\SplitGuard;
@@ -114,6 +115,35 @@ class DeliveryPlanServiceTest extends TestCase
         $service->setGroup($context, 'made-up', $address, null);
 
         static::assertSame(['later'], $plan->getConfiguredGroupIds());
+    }
+
+    public function testANewAddressKeepsTheShippingMethodOfTheDelivery(): void
+    {
+        $plan = new DeliveryPlan(true, 'availability');
+        $plan->setGroupSettings('later', null, 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
+        $service = $this->service($this->cart($plan, ['now' => ['chair' => 2], 'later' => ['chair' => 3]]));
+
+        $service->setGroupAddress(Generator::generateSalesChannelContext(), 'later', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+
+        static::assertSame(['addressId' => 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'shippingMethodId' => 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'], $plan->getGroupSettings('later'));
+    }
+
+    public function testDescribeShowsWhatShippingTogetherSaves(): void
+    {
+        $plan = new DeliveryPlan(true, 'manual');
+        $cart = $this->cart($plan, ['main' => ['sofa' => 1]]);
+        $cart->setDeliveries(new DeliveryCollection([
+            Fixtures::delivery('main', ['sofa' => 1], 4.9),
+            Fixtures::delivery($plan->addManualGroup(), ['chair' => 1], 4.9),
+        ]));
+        $cart->addArrayExtension(SplitDeliveryProcessor::SINGLE_DELIVERY_EXTENSION, ['shippingCosts' => 5.9]);
+        $service = $this->service($cart);
+        $context = Generator::generateSalesChannelContext();
+
+        static::assertSame(3.9, $service->describe($cart, $context)['extraShippingCosts']);
+
+        $cart->removeExtension(SplitDeliveryProcessor::SINGLE_DELIVERY_EXTENSION);
+        static::assertNull($service->describe($cart, $context)['extraShippingCosts'], 'not split');
     }
 
     public function testTheNumberOfConfiguredDeliveriesIsLimited(): void

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0
+
+- **New address in the planner**: each delivery has a *New address* form. The address is checked by Shopware like any other, added to the customer's address book and used for the delivery; the delivery keeps its shipping method. Works for guests and without JavaScript. Only countries the delivery can go to are offered (the address policies decide); others are refused before the address is saved (`error.MN_MULTI_DELIVERY__COUNTRY_NOT_ALLOWED`).
+- **Saving shown**: *Ship everything together* says how much shipping that saves, compared with the single delivery Shopware would build.
+- **Cart page hint** (new setting *Mention the option on the cart page*, on by default): how many deliveries the order arrives in, or that it can be split in the last step.
+- Store API: `extraShippingCosts` in `GET /store-api/checkout/multi-delivery`.
+- New `DeliveryPlanService::setGroupAddress()` and `DeliveryAddressPolicies::isCountryAllowed()`; the cart extension `mnSingleDelivery` (`SplitDeliveryProcessor::SINGLE_DELIVERY_EXTENSION`) holds the single delivery's shipping costs while the cart is split.
+- New Twig blocks `component_mn_multi_delivery_item_new_address` and `mn_multi_delivery_cart_hint`.
+
 ## 1.2.2
 
 Security review of the storefront and Store API endpoints.

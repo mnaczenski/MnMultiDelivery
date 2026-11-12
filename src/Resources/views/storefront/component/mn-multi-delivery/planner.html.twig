@@ -135,6 +135,43 @@
                                         </form>
                                     {% endblock %}
 
+                                    {% if md.addressForm|default(null) %}
+                                        {% block component_mn_multi_delivery_item_new_address %}
+                                            {% set mnNewAddress = app.request.attributes.get('mnNewAddress') %}
+                                            {% set mnFormOpen = mnNewAddress and mnNewAddress.groupId == groupId %}
+                                            <details class="mn-md-new-address" {% if mnFormOpen %}open{% endif %}>
+                                                <summary class="btn btn-link btn-sm">+ {{ 'mnMultiDelivery.newAddress.open'|trans }}</summary>
+                                                <form method="post" action="{{ path('frontend.mn.multi-delivery.address') }}"
+                                                      id="mn-md-new-address-{{ groupId }}" class="mn-md-new-address-form">
+                                                    <input type="hidden" name="groupId" value="{{ groupId }}">
+                                                    {% set mnFormData = mnFormOpen ? mnNewAddress.data : md.addressForm.data %}
+                                                    {% set mnFormPage = { salutations: md.addressForm.salutations, countries: md.addressForm.countries } %}
+                                                    {% sw_include '@Storefront/storefront/component/address/address-personal.html.twig' with {
+                                                        page: mnFormPage,
+                                                        data: mnFormData,
+                                                        prefix: 'address',
+                                                        idPrefix: 'mn-md-' ~ groupId ~ '-',
+                                                        accountType: mnFormData.get('accountType')|default(''),
+                                                        formViolations: mnFormOpen ? formViolations : null,
+                                                        type: null
+                                                    } %}
+                                                    {% sw_include '@Storefront/storefront/component/address/address-form.html.twig' with {
+                                                        page: mnFormPage,
+                                                        data: mnFormData,
+                                                        prefix: 'address',
+                                                        idPrefix: 'mn-md-' ~ groupId ~ '-',
+                                                        scopeElementSelector: '#mn-md-new-address-' ~ groupId,
+                                                        showFormCompany: true,
+                                                        formViolations: mnFormOpen ? formViolations : null,
+                                                        type: null
+                                                    } %}
+                                                    <p class="mn-md-note">{{ 'mnMultiDelivery.newAddress.note'|trans }}</p>
+                                                    <button type="submit" class="btn btn-primary btn-sm">{{ 'mnMultiDelivery.newAddress.submit'|trans }}</button>
+                                                </form>
+                                            </details>
+                                        {% endblock %}
+                                    {% endif %}
+
                                     {% block component_mn_multi_delivery_item_positions %}
                                         <ul class="mn-md-items">
                                             {% for position in delivery.positions %}
@@ -232,7 +269,13 @@
                         {% endif %}
                         <form method="post" action="{{ path('frontend.mn.multi-delivery.toggle') }}">
                             <input type="hidden" name="enabled" value="0">
-                            <button type="submit" class="btn btn-link btn-sm">{{ 'mnMultiDelivery.toggleOff'|trans }}</button>
+                            <button type="submit" class="btn btn-link btn-sm">
+                                {% if md.extraShippingCosts|default(0) > 0 %}
+                                    {{ 'mnMultiDelivery.toggleOffSaving'|trans({'%amount%': md.extraShippingCosts|currency}) }}
+                                {% else %}
+                                    {{ 'mnMultiDelivery.toggleOff'|trans }}
+                                {% endif %}
+                            </button>
                         </form>
                     </div>
                 {% endblock %}

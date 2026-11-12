@@ -1,0 +1,19 @@
+{% sw_extends '@Storefront/storefront/page/checkout/cart/index.html.twig' %}
+
+{% block page_checkout_cart_product_table %}
+    {% block mn_multi_delivery_cart_hint %}
+        {% set mnHint = page.extensions.mnMultiDeliveryCartHint|default(null) %}
+        {% if mnHint %}
+            <div class="mn-md-cart-hint">
+                {% sw_include '@Storefront/storefront/utilities/alert.html.twig' with {
+                    type: 'info',
+                    content: mnHint.deliveries > 1
+                        ? 'mnMultiDelivery.cartHint.split'|trans({'%count%': mnHint.deliveries})
+                        : 'mnMultiDelivery.cartHint.offer'|trans
+                } %}
+            </div>
+        {% endif %}
+    {% endblock %}
+
+    {{ parent() }}
+{% endblock %}

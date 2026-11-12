@@ -4,6 +4,7 @@
         "intro": "Have your order delivered in several parts – to different addresses or as soon as items are ready.",
         "toggle": "Split into several deliveries",
         "toggleOff": "Ship everything together",
+        "toggleOffSaving": "Ship everything together and save %amount% shipping",
         "strategy": "How should we split?",
         "strategies": {
             "manual": "I'll choose myself",
@@ -36,6 +37,11 @@
         "move": "Move",
         "addDelivery": "Add a delivery",
         "removeDelivery": "Remove this delivery",
+        "newAddress": {
+            "open": "New address",
+            "note": "The address is added to your address book.",
+            "submit": "Save and deliver here"
+        },
         "save": "Apply",
         "blocked": {
             "payment": "Several deliveries aren't available with the selected payment method.",
@@ -71,10 +77,15 @@
             "orderTotal": "Order total",
             "badgeHome": "Separate order",
             "allHint": "Deliveries can go to any of your addresses. Every additional delivery is placed as a separate order, with its own confirmation and invoice; deliveries to another country than %country% get that country's taxes and shipping costs."
+        },
+        "cartHint": {
+            "split": "Your order arrives in %count% deliveries. You can change this in the last checkout step.",
+            "offer": "Need part of your order sooner or at another address? You can split it into several deliveries in the last checkout step."
         }
     },
     "error": {
         "MN_MULTI_DELIVERY__SEPARATE_ORDER_PAYMENT": "Deliveries to other countries are placed as separate orders. That isn't possible with the selected payment method – please choose invoice or prepayment, or send all deliveries within one country.",
-        "MN_MULTI_DELIVERY__SEPARATE_ORDER_INVALID": "One of the separate orders for your deliveries can't be placed. Please check that delivery's address and shipping method."
+        "MN_MULTI_DELIVERY__SEPARATE_ORDER_INVALID": "One of the separate orders for your deliveries can't be placed. Please check that delivery's address and shipping method.",
+        "MN_MULTI_DELIVERY__COUNTRY_NOT_ALLOWED": "Deliveries can't go to this country."
     }
 }

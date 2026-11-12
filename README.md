@@ -13,6 +13,8 @@ Lets customers split one order into several deliveries on the checkout confirm p
 ![Delivery planner on the confirm page](docs/images/planner-manual.png)
 
 - **Delivery planner on the confirm page.** Move items, or a part of their quantity, between deliveries, add and remove deliveries, and pick an address and a shipping method per delivery. Changes apply in the background without reloading the page, and the plain forms still work without JavaScript.
+- **New addresses in the planner.** Customers, guests included, can enter a new address right in a delivery. It is checked like any address in Shopware, added to their address book and used for that delivery. Only countries the delivery can go to are offered.
+- **Shown before the last step.** The cart page says how many deliveries the order arrives in, or that it can be split. In the planner, *Ship everything together* shows what that saves in shipping.
 - **Splitting rules** (technical name in brackets)
   - *I'll choose myself* (`manual`): the customer creates the deliveries.
   - *By availability* (`availability`): what is in stock ships now, the rest after restock. A product with partial stock is split by quantity.
@@ -57,6 +59,7 @@ The storefront JavaScript (`src/Resources/app/storefront/dist`) and the administ
 |---|---|---|
 | Let customers split their order | off | Per sales channel. |
 | Payment handlers that keep a single delivery | `Swag\PayPal` | Partial class names, one per line or comma-separated. PayPal only receives the first delivery's shipping cost. |
+| Mention the option on the cart page | on | A note above the cart: how many deliveries the order arrives in, or that it can be split. Only for carts that can be split and have more than one item. |
 | Rules customers can choose | all | Limits the four built-in rules; leave empty to offer them all. Rules added by other plugins are always offered and decide themselves with `isAvailable()`. |
 | Default rule | I'll choose myself | Used when the customer has not picked one, and as a fallback when a rule is no longer offered. |
 | Split automatically | off | The cart arrives already split with the default rule. Customers can still ship everything together. |
@@ -139,6 +142,7 @@ All routes need a logged-in customer (guests included) and use the same logic as
 | `groupNumbers` | the display number per group id |
 | `shippingCountryId` | the shipping country |
 | `addressIds` | the addresses a delivery may use; with separate orders also addresses in other countries |
+| `extraShippingCosts` | what the split adds to the shipping costs compared with a single delivery (what *ship everything together* saves), or `null` when the cart isn't split |
 | `separateOrders` | separate orders: `enabled`, `mode` (the `countryMode` setting), `paymentAllowed`, `separateGroupIds` (groups that become separate orders), `totalPrice`, and `orders`, one entry per order the checkout will place (separate orders first, the main order last) with `main`, `groupId`, `addressId`, `countryId`, `lineItems` (quantity per cart item), `positionPrice`, `shippingCosts`, `netPrice`, `totalPrice`, `taxStatus`, `calculatedTaxes`, `blockingErrors`. Empty `orders` when the cart has no delivery abroad. |
 
 **Behavior**
@@ -176,7 +180,7 @@ Shopware's `OrderConverter` writes one `order_delivery` per cart delivery. The p
 - **Separate orders need a payment method without an online payment step**, because only the main order goes through the payment step.
 - **PayPal** (default setting): splitting is off, because PayPal receives only one shipping option.
 - **Admin order editing and creation** never split. Existing deliveries are kept as they are.
-- **Guests** only have the addresses they entered at checkout, so they can split by rule or shipping method but rarely send deliveries to different addresses.
+- **New addresses in the Store API**: headless clients create the address with Shopware's `POST /store-api/account/address` (guests included) and then set it with `POST /store-api/checkout/multi-delivery/group`.
 - **The warehouse rule predicts** Commercial's allocation from current stock. If stock changes between checkout and order placement, Commercial's allocation wins and can differ from the deliveries.
 - **The per-delivery delivery note** uses `DocumentOrderCriteriaEvent` and `DeliveryNoteOrdersEvent`, which Shopware plans to replace in 6.9.
 - **Translations**: German and English.
@@ -329,10 +333,12 @@ Customize the templates with `{% sw_extends %}` and these blocks. Keep the form 
   - `_list`, `_item`, `_item_header`, `_item_title`, `_item_meta`
   - `_item_settings`, `_item_address`, `_item_shipping_method`
   - `_item_positions`, `_item_position`, `_item_position_label`, `_item_position_move`
+  - `_item_new_address` (the *New address* form of a delivery)
   - `_item_remove`, `_empty_item`, `_hint`, `_actions`
   - `_item_separate_order` (the "Separate order · country" badge of a delivery abroad)
 
   Inside a delivery the variables `delivery`, `info` (`mnDeliveryGroup`), `groupId`, `groupNumber` and `settings` are available.
+- **Cart page hint**, `@Storefront/storefront/page/checkout/cart/index.html.twig`: `mn_multi_delivery_cart_hint`; page data `page.extensions.mnMultiDeliveryCartHint.deliveries` (the number of deliveries, 1 when the cart isn't split yet).
 - **Overview** on the finish page, the account and the approval pages, `@Storefront/storefront/component/mn-multi-delivery/delivery-overview.html.twig`: `component_mn_delivery_overview`, with `_heading`, `_item`, `_item_summary`, `_item_address`, `_item_positions`.
 - **Separate orders** (hybrid and every-delivery mode):
   - Summary on the confirm and finish pages, `@Storefront/storefront/page/checkout/summary.html.twig`: `page_checkout_summary_mn_separate_order` (one order's totals, variables `mnOrder` and `summary`) and `page_checkout_summary_mn_separate_total` (sum of all orders).

@@ -234,3 +234,37 @@ Neutral styles; themes can restyle the .mn-md-* classes.
         margin-bottom: 0.25rem;
     }
 }
+
+// New address inside a delivery
+.mn-md-new-address {
+    margin-top: 0.5rem;
+
+    > summary {
+        padding-left: 0;
+        list-style: none;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+    }
+
+    &[open] > summary {
+        margin-bottom: 0.5rem;
+    }
+}
+
+.mn-md-new-address-form {
+    padding: 1rem;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+
+    .mn-md-note {
+        margin: 0.5rem 0;
+        font-size: 0.85rem;
+    }
+}
+
+// Hint on the cart page
+.mn-md-cart-hint {
+    margin-bottom: 1rem;
+}

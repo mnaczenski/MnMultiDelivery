@@ -4,11 +4,13 @@ namespace Mn\MultiDelivery\Service;
 
 use Mn\MultiDelivery\Cart\DeliveryGroupInfo;
 use Mn\MultiDelivery\Cart\DeliveryPlan;
+use Mn\MultiDelivery\Cart\SplitDeliveryProcessor;
 use Mn\MultiDelivery\Event\DeliveryPlanChangedEvent;
 use Mn\MultiDelivery\SeparateOrder\SeparateOrderCalculator;
 use Mn\MultiDelivery\Strategy\StrategyRegistry;
 use Shopware\Core\Checkout\Cart\Cart;
 use Shopware\Core\Checkout\Cart\SalesChannel\CartService;
+use Shopware\Core\Framework\Struct\ArrayStruct;
 use Shopware\Core\System\Country\CountryEntity;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
@@ -81,6 +83,19 @@ class DeliveryPlanService
         });
     }
 
+    /**
+     * Sends a delivery to another address and keeps its shipping method,
+     * for example to an address the customer has just created in the planner.
+     * Same limits and checks as setGroup().
+     */
+    public function setGroupAddress(SalesChannelContext $context, string $groupId, string $addressId): Cart
+    {
+        $cart = $this->cartService->getCart($context->getToken(), $context);
+        $shippingMethodId = $this->getPlan($cart, $context)->getGroupSettings($groupId)['shippingMethodId'] ?? null;
+
+        return $this->setGroup($context, $groupId, $addressId, $shippingMethodId);
+    }
+
     public function addGroup(SalesChannelContext $context): Cart
     {
         return $this->change($context, DeliveryPlanChangedEvent::ACTION_ADD_GROUP, static function (DeliveryPlan $plan): void {
@@ -146,7 +161,7 @@ class DeliveryPlanService
      * countryMode): whether they are possible and, when the cart has some,
      * every order the checkout will place with its calculated cart.
      *
-     * @return array{plan: DeliveryPlan, blockReason: ?string, strategies: list<string>, strategy: string, manualMoves: bool, adjustable: bool, adjusted: bool, manualGroups: list<string>, moveTargets: list<string>, groupNumbers: array<string, int>, separateOrders: array<string, mixed>}
+     * @return array{plan: DeliveryPlan, blockReason: ?string, strategies: list<string>, strategy: string, manualMoves: bool, adjustable: bool, adjusted: bool, manualGroups: list<string>, moveTargets: list<string>, groupNumbers: array<string, int>, separateOrders: array<string, mixed>, extraShippingCosts: ?float}
      */
     public function describe(Cart $cart, SalesChannelContext $context): array
     {
@@ -175,7 +190,23 @@ class DeliveryPlanService
             'moveTargets' => $this->moveTargets($plan, $cart, $context),
             'groupNumbers' => $groupNumbers,
             'separateOrders' => $this->describeSeparateOrders($cart, $context),
+            'extraShippingCosts' => $this->extraShippingCosts($cart),
         ];
+    }
+
+    /**
+     * What the split adds to the shipping costs, compared with the single
+     * delivery Shopware would have built: what the customer saves by shipping
+     * everything together. Null when the cart isn't split.
+     */
+    private function extraShippingCosts(Cart $cart): ?float
+    {
+        $single = $cart->getExtension(SplitDeliveryProcessor::SINGLE_DELIVERY_EXTENSION);
+        if (!$single instanceof ArrayStruct || $cart->getDeliveries()->count() < 2) {
+            return null;
+        }
+
+        return max(0.0, round($cart->getDeliveries()->getShippingCosts()->sum()->getTotalPrice() - (float) $single->get('shippingCosts'), 2));
     }
 
     /**

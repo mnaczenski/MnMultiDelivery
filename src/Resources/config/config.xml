@@ -18,6 +18,14 @@
             <helpText lang="de-DE">PayPal übermittelt nur die Versandkosten der ersten Lieferung als gewählte Versandoption, was PayPal ablehnen kann.</helpText>
             <defaultValue>Swag\PayPal</defaultValue>
         </input-field>
+        <input-field type="bool">
+            <name>cartHint</name>
+            <label>Mention the option on the cart page</label>
+            <label lang="de-DE">Auf der Warenkorbseite auf die Möglichkeit hinweisen</label>
+            <helpText>A short note above the cart: how many deliveries the order arrives in, or that it can be split in the last checkout step.</helpText>
+            <helpText lang="de-DE">Ein kurzer Hinweis über dem Warenkorb: in wie vielen Lieferungen die Bestellung kommt, oder dass sie im letzten Bestellschritt aufgeteilt werden kann.</helpText>
+            <defaultValue>true</defaultValue>
+        </input-field>
     </card>
 
     <card>

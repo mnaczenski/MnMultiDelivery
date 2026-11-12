@@ -55,6 +55,9 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
  */
 class SplitDeliveryProcessor implements CartProcessorInterface, CartDataCollectorInterface
 {
+    /** Cart extension with the shipping costs of the single delivery the split replaced: { shippingCosts } */
+    public const SINGLE_DELIVERY_EXTENSION = 'mnSingleDelivery';
+
     private const ADDRESS_KEY = 'mn-md-address-';
 
     /**
@@ -120,6 +123,8 @@ class SplitDeliveryProcessor implements CartProcessorInterface, CartDataCollecto
 
     public function process(CartDataCollection $data, Cart $original, Cart $toCalculate, SalesChannelContext $context, CartBehavior $behavior): void
     {
+        $toCalculate->removeExtension(self::SINGLE_DELIVERY_EXTENSION);
+
         $plan = $this->plan($toCalculate, $context);
         if (!$plan->isEnabled()) {
             return;
@@ -160,6 +165,7 @@ class SplitDeliveryProcessor implements CartProcessorInterface, CartDataCollecto
             return;
         }
         $toCalculate->setDeliveries($split);
+        $toCalculate->addArrayExtension(self::SINGLE_DELIVERY_EXTENSION, ['shippingCosts' => $base->getShippingCosts()->getTotalPrice()]);
     }
 
     /**

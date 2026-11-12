@@ -4,6 +4,7 @@
         "intro": "Lassen Sie Ihre Bestellung in mehreren Teilen liefern – an verschiedene Adressen oder sobald Artikel bereit sind.",
         "toggle": "In mehrere Lieferungen aufteilen",
         "toggleOff": "Alles zusammen liefern",
+        "toggleOffSaving": "Alles zusammen liefern und %amount% Versandkosten sparen",
         "strategy": "Wie sollen wir aufteilen?",
         "strategies": {
             "manual": "Selbst festlegen",
@@ -36,6 +37,11 @@
         "move": "Verschieben",
         "addDelivery": "Lieferung hinzufügen",
         "removeDelivery": "Diese Lieferung entfernen",
+        "newAddress": {
+            "open": "Neue Adresse",
+            "note": "Die Adresse wird in Ihrem Adressbuch gespeichert.",
+            "submit": "Speichern und hierhin liefern"
+        },
         "save": "Übernehmen",
         "blocked": {
             "payment": "Mehrere Lieferungen sind mit der gewählten Zahlungsart nicht möglich.",
@@ -71,10 +77,15 @@
             "orderTotal": "Bestellsumme",
             "badgeHome": "Separate Bestellung",
             "allHint": "Lieferungen können an alle Ihre Adressen gehen. Jede weitere Lieferung wird als separate Bestellung aufgegeben, mit eigener Bestätigung und eigener Rechnung; Lieferungen in ein anderes Land als %country% erhalten die Steuern und Versandkosten dieses Landes."
+        },
+        "cartHint": {
+            "split": "Ihre Bestellung kommt in %count% Lieferungen. Das können Sie im letzten Bestellschritt ändern.",
+            "offer": "Brauchen Sie einen Teil früher oder an einer anderen Adresse? Im letzten Bestellschritt können Sie die Bestellung in mehrere Lieferungen aufteilen."
         }
     },
     "error": {
         "MN_MULTI_DELIVERY__SEPARATE_ORDER_PAYMENT": "Lieferungen in andere Länder werden als separate Bestellungen aufgegeben. Mit der gewählten Zahlungsart ist das nicht möglich – bitte wählen Sie Rechnung oder Vorkasse oder liefern Sie alles innerhalb eines Landes.",
-        "MN_MULTI_DELIVERY__SEPARATE_ORDER_INVALID": "Eine der separaten Bestellungen für Ihre Lieferungen kann nicht aufgegeben werden. Bitte prüfen Sie Adresse und Versandart dieser Lieferung."
+        "MN_MULTI_DELIVERY__SEPARATE_ORDER_INVALID": "Eine der separaten Bestellungen für Ihre Lieferungen kann nicht aufgegeben werden. Bitte prüfen Sie Adresse und Versandart dieser Lieferung.",
+        "MN_MULTI_DELIVERY__COUNTRY_NOT_ALLOWED": "In dieses Land können wir keine Lieferung schicken."
     }
 }
