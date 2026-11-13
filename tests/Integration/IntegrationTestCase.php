@@ -72,7 +72,10 @@ abstract class IntegrationTestCase extends TestCase
     {
         if (self::$kernel === null) {
             $shopwareDir = getenv('SHOPWARE_DIR') ?: \dirname(__DIR__, 5);
-            (new Dotenv())->usePutenv()->bootEnv($shopwareDir . '/.env');
+            // a Shopware checkout in CI has no .env: the variables come from the environment
+            if (is_file($shopwareDir . '/.env') || is_file($shopwareDir . '/.env.dist')) {
+                (new Dotenv())->usePutenv()->bootEnv($shopwareDir . '/.env');
+            }
             $classLoader = require $shopwareDir . '/vendor/autoload.php';
             $kernel = KernelFactory::create(environment: getenv('APP_ENV') ?: 'prod', debug: false, classLoader: $classLoader);
             \assert($kernel instanceof KernelInterface);
