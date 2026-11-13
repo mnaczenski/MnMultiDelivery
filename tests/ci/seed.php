@@ -21,7 +21,12 @@ use Symfony\Component\Dotenv\Dotenv;
 
 $root = $argv[1] ?? dirname(__DIR__, 5);
 $classLoader = require $root . '/vendor/autoload.php';
-(new Dotenv())->usePutenv()->bootEnv($root . '/.env');
+// errors to the log, not into $GITHUB_ENV with the output
+ini_set('display_errors', 'stderr');
+// a Shopware checkout in CI has no .env: the variables come from the environment
+if (is_file($root . '/.env') || is_file($root . '/.env.dist')) {
+    (new Dotenv())->usePutenv()->bootEnv($root . '/.env');
+}
 $kernel = KernelFactory::create(environment: getenv('APP_ENV') ?: 'prod', debug: false, classLoader: $classLoader);
 assert($kernel instanceof Symfony\Component\HttpKernel\KernelInterface);
 $kernel->boot();
