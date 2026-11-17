@@ -51,7 +51,7 @@ bin/console cache:clear
 
 Then turn on **Multi Delivery** in the plugin settings for each sales channel that should offer it.
 
-The storefront JavaScript (`src/Resources/app/storefront/dist`) and the administration (`src/Resources/public`) ship prebuilt. Run `bin/build-storefront.sh` or `bin/build-administration.sh` only after changing their sources.
+The storefront JavaScript (`src/Resources/app/storefront/dist`) and the administration (`src/Resources/public`) ship prebuilt. Run Shopware's `bin/build-storefront.sh` or `bin/build-administration.sh` (in the shop root, with the plugin active; Node needed) only after changing their sources.
 
 ## Configuration
 
@@ -90,7 +90,7 @@ In both separate-order modes customers can also pick addresses in other countrie
 - Every order has its own number, confirmation mail, invoice, delivery note and states, so ERP, shipping and accounting tools see ordinary one-country orders.
 - **Payment:** each order is paid on its own and only the main order goes through the payment step. Separate orders are therefore only offered with the payment handlers in *Payment handlers that allow separate orders*; with other methods foreign addresses are not offered and the planner says why.
 - **Promotions and vouchers** stay on the main order. Minimum order values and rules are checked per order.
-- **Placing:** every order is calculated first; if one has an error that blocks ordering, nothing is placed and the confirm page shows `error.MN_MULTI_DELIVERY__SEPARATE_ORDER_INVALID`. If placing still fails halfway, the orders already placed are cancelled (their confirmation mails may already be out). Separate orders are placed first, the main order last, and the main order is what the storefront and Store API return. If every delivery goes abroad, the last separate order takes that place.
+- **Placing:** every order is calculated first, the main order included; if one has an error that blocks ordering, nothing is placed and the confirm page shows `error.MN_MULTI_DELIVERY__SEPARATE_ORDER_INVALID` (or Shopware's own message for the main order). If placing still fails halfway, the orders already placed are cancelled together with their open payments (their confirmation mails may already be out). Once every order is placed, the checkout succeeds: if linking the orders fails (after one retry) or a listener of `SeparateOrdersPlacedEvent` throws, it is logged and the orders stand, so a customer never places them twice. Separate orders are placed first, the main order last, and the main order is what the storefront and Store API return. If every delivery goes abroad, the last separate order takes that place.
 - The orders of one checkout are linked in the order custom field `mn_multi_delivery_orders` (`group`, `orders[]` with `id`, `orderNumber`, `country`, `countryIso`, `amountTotal`, `currencyIso`).
 - **Finish page:** every order of the checkout is shown in full (address, shipping and payment method, items), and the summary lists each order's totals and the sum. Only orders of the logged-in customer are loaded. The customer account lists the linked orders on each order's details.
 - **Cart storage:** the main order and every separate order are calculated as copies with tokens of their own, never the customer's cart token. Shopware stores a cart while calculating it when product data was reloaded; those copies are deleted right away, so previews never change the customer's cart.
@@ -148,7 +148,8 @@ All routes need a logged-in customer (guests included) and use the same logic as
 **Behavior**
 - Each delivery in the cart response carries `extensions.mnDeliveryGroup.groupId`.
 - `move` with `quantity` 0 moves the whole quantity.
-- Input that doesn't fit has no effect: an unknown rule, group or line item, or an address the [address policies](#blocking-addresses-shipping-costs) reject. The address is still stored, but the delivery keeps the shipping address. Move quantities are capped at what the delivery holds.
+- Input that doesn't fit has no effect: an unknown rule, group or line item. Move quantities are capped at what the delivery holds.
+- A delivery whose address can't be used (deleted, not the customer's, or rejected by the [address policies](#blocking-addresses-shipping-costs)) keeps the shipping address, and the cart gets the error `mn-multi-delivery-address-blocked`, which blocks the order until the customer picks another address. A delivery whose shipping method is unavailable (inactive, not assigned to the sales channel, deleted) ships with the main delivery's method, and the cart gets the warning `mn-multi-delivery-shipping-method-changed`. This follows Shopware's own behaviour for the order's address and shipping method. Both carry `delivery` (the number shown in the planner) and `groupId` in their parameters; the storefront shows them as the snippets `checkout.mn-multi-delivery-address-blocked` and `checkout.mn-multi-delivery-shipping-method-changed`.
 - When splitting is turned off for the sales channel, every change returns the unchanged cart.
 - An unknown action returns 404.
 - `POST /store-api/checkout/order` places separate orders like the storefront and returns the main order (or, if every delivery goes abroad, the last separate order). The other orders are in its `customFields.mn_multi_delivery_orders`. Pay every order whose payment is still open; only offline payment handlers are allowed for separate orders.
@@ -189,7 +190,7 @@ Shopware's `OrderConverter` writes one `order_delivery` per cart delivery. The p
 
 Everything in this section is **public API**: it stays compatible within a major version (see the [compatibility policy](docs/compatibility.md)). Classes marked `@internal` can change in any release. Built-in implementations (the four rules, `SameCountryAddressPolicy`, `ExtraDeliveryCostPolicy`, `DeliveryPlanRoute`) can be replaced through their interface or service id, but the classes themselves may change.
 
-The [example project plugin](examples/MnMultiDeliveryExample) shows most of these extension points working together. The snippets below are taken from it, shortened.
+The [example project plugin](examples/MnMultiDeliveryExample) shows several of these extension points working together: a splitting rule, a blocker, `DeliveryAllocationEvent`, `SplitOrderConvertedEvent` and a Twig block. The snippets below are taken from it, shortened.
 
 | You want to … | Use |
 |---|---|
@@ -200,8 +201,8 @@ The [example project plugin](examples/MnMultiDeliveryExample) shows most of thes
 | decide which addresses a delivery may use | `DeliveryAddressPolicyInterface`, tag `mn.multi_delivery.address_policy` |
 | price additional deliveries differently | decorate `ShippingCostPolicyInterface` |
 | react to the customer's changes | `DeliveryPlanChangedEvent` |
-| add data to the order deliveries | `SeparateOrdersPlacedEvent` | after a checkout placed separate orders for deliveries to other countries and linked them | read `getOrderGroupId()`, `getOrders()` (main order last) |
-| `SplitOrderConvertedEvent` |
+| add data to the order deliveries | `SplitOrderConvertedEvent` |
+| react to separate orders | `SeparateOrdersPlacedEvent` |
 | change the Store API | decorate `AbstractDeliveryPlanRoute` |
 | use the split in shipping prices, promotions or flows | Rule Builder condition `mnMultiDeliveryCount` |
 | change the planner or the delivery overview | [Twig blocks](#storefront), snippets |
@@ -258,6 +259,7 @@ Higher priorities are listed further up. Add the snippets. The *Rules customers 
 | `SplitDeliveriesBuiltEvent` | after the deliveries are built and priced, before they replace Shopware's single delivery | change the deliveries in place, or `setDeliveries()`; fewer than two cancels the split |
 | `DeliveryPlanChangedEvent` | after the customer changed the plan (storefront or Store API) and the cart was recalculated | read `getAction()` (`ACTION_*`), `getPlan()`, `getCart()` |
 | `SplitOrderConvertedEvent` | when a split cart becomes an order, after the group data was written to the order deliveries | `setConvertedCart()`, e.g. to add custom fields per delivery |
+| `SeparateOrdersPlacedEvent` | after a checkout placed separate orders for deliveries to other countries and linked them | read `getOrderGroupId()`, `getOrders()` (main order last). Exceptions are logged, not thrown: the orders are already placed |
 
 All events implement `ShopwareSalesChannelEvent`. The allocation and built events run on every cart calculation, so keep them fast.
 
@@ -403,11 +405,12 @@ composer test                               # unit tests
 composer phpstan                            # PHPStan, level 8
 
 # unit tests from the plugin directory inside a Shopware installation (no database needed)
-php phpunit.phar --testsuite unit          # or: SHOPWARE_DIR=/path/to/shop php phpunit.phar --testsuite unit
+../../../vendor/bin/phpunit --testsuite unit   # or from anywhere: SHOPWARE_DIR=/path/to/shop /path/to/shop/vendor/bin/phpunit --testsuite unit
 
 # integration tests against the installation, with the plugin active
+# (tests/ci/seed.php <shop root> creates test data and prints the two variables)
 MN_MULTI_DELIVERY_SALES_CHANNEL_ID=<storefront id> MN_MULTI_DELIVERY_CUSTOMER_ID=<customer id> \
-    php phpunit.phar --testsuite integration
+    ../../../vendor/bin/phpunit --testsuite integration
 ```
 
 The unit suite covers:
@@ -422,7 +425,7 @@ The unit suite covers:
 
 The integration tests calculate real carts and convert one into an order payload. They write nothing: carts stay in memory, the order is not persisted, and settings are overridden in the test process only. Without the variables they are skipped.
 
-After changing the storefront JavaScript or the administration, run `bin/build-storefront.sh` or `bin/build-administration.sh` and commit the built files.
+After changing the storefront JavaScript or the administration, run Shopware's `bin/build-storefront.sh` or `bin/build-administration.sh` in the shop root (plugin active, Node needed) and commit the built files.
 
 ## License
 

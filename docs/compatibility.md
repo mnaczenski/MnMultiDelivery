@@ -2,6 +2,8 @@
 
 Multi Delivery follows [semantic versioning](https://semver.org) for its **public API**.
 
+Multi Delivery is a reference plugin: it shows how a Shopware plugin can be built to be extended. This policy states how it is meant to evolve and is followed on a best-effort basis; it is not a support or warranty commitment.
+
 ## What is public API
 
 Everything marked `Public API: stable within a major version` in its docblock, plus the contracts below:
@@ -11,6 +13,7 @@ Everything marked `Public API: stable within a major version` in its docblock, p
   - classes: `AbstractDeliveryPlanRoute`, `DeliveryPlanRouteResponse`, `DeliveryPlan`, `DeliveryGroupInfo`, `RootItem`, `Allocation`, `DeliveryGroup`, `DeliveryCountRule`, `SplitGuard`, `SplitSettings`, and the public methods of `DeliveryPlanService`
   - events: `DeliveryAllocationEvent`, `SplitDeliveriesBuiltEvent`, `DeliveryPlanChangedEvent`, `SplitOrderConvertedEvent`, `SeparateOrdersPlacedEvent`
   - `SeparateOrderSplit`, `SeparateOrderPart`, `MultiDeliveryException` and its error codes
+  - the cart errors `DeliveryAddressBlockedError` and `DeliveryShippingMethodChangedError`, their message keys and parameters
 - **Service tags:** `mn.multi_delivery.strategy`, `mn.multi_delivery.blocker`, `mn.multi_delivery.address_policy`
 - **Store API:** the routes and fields in `src/Resources/Schema/StoreApi`; the order route placing separate orders and returning the main order
 - **Data**
@@ -55,4 +58,4 @@ Known dependencies on Shopware internals:
 |---|---|---|
 | Administration | `sw-order-detail`: `orderDetailTabs`, block `sw_order_detail_content_tabs_extension` (since 6.7.14) | the Deliveries tab is missing; caught by the override check |
 | Delivery note per delivery | `DocumentOrderCriteriaEvent`, `DeliveryNoteOrdersEvent` | Shopware plans to replace them in 6.9 |
-| Separate orders | the context persister's option keys (`sw-shipping-address`, rule ids) | a separate order could keep the main address; covered by the integration tests |
+| Separate orders | the context persister's option keys (`sw-shipping-address`, rule ids) | a separate order could keep the main address; not covered by tests yet |

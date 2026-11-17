@@ -12,6 +12,7 @@ use Shopware\Core\Checkout\Cart\CartContextHasher;
 use Shopware\Core\Checkout\Cart\CartException;
 use Shopware\Core\Checkout\Cart\SalesChannel\AbstractCartOrderRoute;
 use Shopware\Core\Checkout\Cart\SalesChannel\CartOrderRouteResponse;
+use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionDefinition;
 use Shopware\Core\Checkout\Order\OrderDefinition;
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
@@ -30,9 +31,13 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
  * placed last and returned, so the storefront's payment step and finish page
  * work with it.
  *
- * Before anything is placed, every order is calculated; if one of them has
- * an error that blocks ordering, nothing is placed. If placing fails halfway,
- * the orders placed so far are cancelled.
+ * Before anything is placed, every order is calculated; if one of them, the
+ * main order included, has an error that blocks ordering, nothing is placed.
+ * If placing still fails halfway, the orders placed so far are cancelled,
+ * together with their open payments. Once every order is placed, the checkout
+ * succeeds: a failure while linking the orders or in a listener of
+ * SeparateOrdersPlacedEvent is logged, never thrown, because the customer
+ * would otherwise retry and place everything again.
  *
  * Carts without a delivery to another country go to Shopware unchanged.
  *
@@ -92,6 +97,11 @@ class SeparateOrderCartOrderRoute extends AbstractCartOrderRoute
             }
         }
 
+        // Shopware would refuse the main order only after the separate orders are out (with their mails).
+        if ($split->hasMainOrder() && $split->mainCart->getErrors()->blockOrder()) {
+            throw CartException::invalidCart($split->mainCart->getErrors());
+        }
+
         $partData = new RequestDataBag($data->all());
         $partData->remove('hash');
 
@@ -124,11 +134,53 @@ class SeparateOrderCartOrderRoute extends AbstractCartOrderRoute
             throw $e;
         }
 
+        // Every order is placed: from here on nothing may fail the checkout.
         $groupId = Uuid::randomHex();
-        $this->link($groupId, $orders, $context);
-        $this->dispatcher->dispatch(new SeparateOrdersPlacedEvent($groupId, $orders, $context));
+        $this->linkSafely($groupId, $orders, $context);
+        try {
+            $this->dispatcher->dispatch(new SeparateOrdersPlacedEvent($groupId, $orders, $context));
+        } catch (\Throwable $e) {
+            $this->logger->error('Multi Delivery: a listener of SeparateOrdersPlacedEvent failed for orders {orderNumbers}: {message}', [
+                'orderNumbers' => $this->orderNumbers($orders),
+                'message' => $e->getMessage(),
+                'exception' => $e,
+            ]);
+        }
 
         return $response;
+    }
+
+    /**
+     * Links the orders, with one retry. If that fails too, the orders stand unlinked and the error is logged.
+     *
+     * @param list<OrderEntity> $orders
+     */
+    private function linkSafely(string $groupId, array $orders, SalesChannelContext $context): void
+    {
+        for ($attempt = 1; $attempt <= 2; ++$attempt) {
+            try {
+                $this->link($groupId, $orders, $context);
+
+                return;
+            } catch (\Throwable $e) {
+                if ($attempt === 2) {
+                    $this->logger->error('Multi Delivery could not link the separate orders {orderNumbers} (group {group}): {message}', [
+                        'orderNumbers' => $this->orderNumbers($orders),
+                        'group' => $groupId,
+                        'message' => $e->getMessage(),
+                        'exception' => $e,
+                    ]);
+                }
+            }
+        }
+    }
+
+    /**
+     * @param list<OrderEntity> $orders
+     */
+    private function orderNumbers(array $orders): string
+    {
+        return implode(', ', array_map(static fn (OrderEntity $order) => (string) $order->getOrderNumber(), $orders));
     }
 
     /**
@@ -179,6 +231,20 @@ class SeparateOrderCartOrderRoute extends AbstractCartOrderRoute
                     'orderNumber' => $order->getOrderNumber(),
                     'message' => $e->getMessage(),
                 ]);
+            }
+            // Its payments too: only offline payment methods are allowed here, so they are still open.
+            foreach ($order->getTransactions() ?? [] as $transaction) {
+                try {
+                    $this->stateMachineRegistry->transition(
+                        new Transition(OrderTransactionDefinition::ENTITY_NAME, $transaction->getId(), 'cancel', 'stateId', 'Multi Delivery: another order of the same checkout failed'),
+                        $context->getContext(),
+                    );
+                } catch (\Throwable $e) {
+                    $this->logger->error('Multi Delivery could not cancel the payment of separate order {orderNumber}: {message}', [
+                        'orderNumber' => $order->getOrderNumber(),
+                        'message' => $e->getMessage(),
+                    ]);
+                }
             }
         }
     }

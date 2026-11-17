@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.0
+
+- **No silent fallbacks for a delivery's address and shipping method**, following Shopware's behaviour for the order's own address and shipping method:
+  - A delivery whose address can't be used (deleted, not the customer's, or rejected by the address policies) keeps the shipping address and gets the new cart error `DeliveryAddressBlockedError` (`mn-multi-delivery-address-blocked`). It blocks the order until the customer picks another address.
+  - A delivery whose shipping method is unavailable ships with the main delivery's method and gets the new warning `DeliveryShippingMethodChangedError` (`mn-multi-delivery-shipping-method-changed`). It doesn't block the order.
+  - Store API: both appear in the cart's `errors`; before, the input silently had no effect.
+- **Separate orders are more robust:**
+  - Blocking errors of the main order are checked before any order is placed, so no separate order (and no confirmation mail) goes out for a checkout that can't complete.
+  - When placing fails halfway, the open payments of the cancelled orders are cancelled too.
+  - Once every order is placed, the checkout succeeds: a failed link of the orders (retried once) or an exception in a `SeparateOrdersPlacedEvent` listener is logged instead of thrown, so customers don't place their orders twice.
+- Docs: the compatibility policy is best effort (reference plugin); fixed the *Extending* table and the *Events* table (`SeparateOrdersPlacedEvent`), the example plugin's file name, and the development commands.
+
 ## 1.3.0
 
 - **New address in the planner**: each delivery has a *New address* form. The address is checked by Shopware like any other, added to the customer's address book and used for the delivery; the delivery keeps its shipping method. Works for guests and without JavaScript. Only countries the delivery can go to are offered (the address policies decide); others are refused before the address is saved (`error.MN_MULTI_DELIVERY__COUNTRY_NOT_ALLOWED`).

@@ -5,6 +5,8 @@ namespace Mn\MultiDelivery\Tests\Unit\Cart;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Mn\MultiDelivery\Cart\DeliveryPlan;
+use Mn\MultiDelivery\Cart\Error\DeliveryAddressBlockedError;
+use Mn\MultiDelivery\Cart\Error\DeliveryShippingMethodChangedError;
 use Mn\MultiDelivery\Cart\SplitDeliveryProcessor;
 use Mn\MultiDelivery\Event\DeliveryAllocationEvent;
 use Mn\MultiDelivery\Event\SplitDeliveriesBuiltEvent;
@@ -20,6 +22,7 @@ use Mn\MultiDelivery\Strategy\StrategyRegistry;
 use Mn\MultiDelivery\Tests\Fixtures;
 use Shopware\Core\Checkout\Cart\Cart;
 use Shopware\Core\Checkout\Cart\CartBehavior;
+use Shopware\Core\Checkout\Cart\Error\Error;
 use Shopware\Core\Checkout\Cart\Delivery\DeliveryCalculator;
 use Shopware\Core\Checkout\Cart\Delivery\Struct\DeliveryCollection;
 use Shopware\Core\Checkout\Cart\LineItem\CartDataCollection;
@@ -208,6 +211,96 @@ class SplitDeliveryProcessorTest extends TestCase
 
         static::assertSame(['now' => 2, 'later' => 3], $this->adjust($allocation, ['chair' => ['now' => 4]])->quantities['chair']);
         static::assertSame(['now' => 2, 'later' => 3], $this->adjust($allocation, ['chair' => ['gone' => 5]])->quantities['chair']);
+    }
+
+    public function testAnAddressThePoliciesRejectBlocksTheOrderAndNamesTheDelivery(): void
+    {
+        $plan = $this->manualPlan();
+        $plan->setGroupSettings('delivery-2', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', null);
+        $data = $this->addressData('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', (string) $this->context()->getCustomer()?->getId());
+
+        $cart = $this->process($plan, null, null, [$this->policy(false)], $data);
+
+        $errors = $cart->getErrors()->getElements();
+        static::assertCount(1, $errors);
+        $error = array_values($errors)[0];
+        static::assertInstanceOf(DeliveryAddressBlockedError::class, $error);
+        static::assertTrue($error->blockOrder());
+        static::assertSame(['delivery' => 2, 'groupId' => 'delivery-2', 'addressId' => 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'], $error->getParameters());
+        static::assertSame('mn-multi-delivery-address-blocked', $error->getMessageKey());
+        // The delivery still calculates with the main address, so the confirm page can show the error.
+        static::assertNull($cart->getDeliveries()->last()?->getLocation()->getAddress());
+    }
+
+    public function testADeletedAddressBlocksTheOrder(): void
+    {
+        $plan = $this->manualPlan();
+        $plan->setGroupSettings('delivery-2', 'dddddddddddddddddddddddddddddddd', null);
+
+        $errors = $this->process($plan, null, null, [$this->policy(true)])->getErrors();
+
+        static::assertTrue($errors->blockOrder());
+        static::assertInstanceOf(DeliveryAddressBlockedError::class, $errors->first());
+    }
+
+    public function testAUsableAddressAddsNoError(): void
+    {
+        $plan = $this->manualPlan();
+        $plan->setGroupSettings('delivery-2', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', null);
+        $data = $this->addressData('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', (string) $this->context()->getCustomer()?->getId());
+
+        static::assertCount(0, $this->process($plan, null, null, [$this->policy(true)], $data)->getErrors());
+    }
+
+    public function testAnUnavailableShippingMethodFallsBackWithAWarning(): void
+    {
+        $plan = $this->manualPlan();
+        $plan->setGroupSettings('delivery-2', null, 'cccccccccccccccccccccccccccccccc');
+
+        $cart = $this->process($plan);
+
+        $error = $cart->getErrors()->first();
+        static::assertInstanceOf(DeliveryShippingMethodChangedError::class, $error);
+        static::assertFalse($cart->getErrors()->blockOrder());
+        static::assertSame(Error::LEVEL_WARNING, $error->getLevel());
+        static::assertSame(2, $error->getParameters()['delivery']);
+        static::assertSame('0190a1b2c3d4e5f60718293a4b5c6d7e', $cart->getDeliveries()->last()?->getShippingMethod()->getId(), 'the main delivery\'s method');
+    }
+
+    public function testNoErrorsWhenTheSplitIsCancelled(): void
+    {
+        $plan = $this->manualPlan();
+        $plan->setGroupSettings('delivery-2', 'dddddddddddddddddddddddddddddddd', 'cccccccccccccccccccccccccccccccc');
+        $dispatcher = new EventDispatcher();
+        $dispatcher->addListener(SplitDeliveriesBuiltEvent::class, static fn (SplitDeliveriesBuiltEvent $e) => $e->setDeliveries(new DeliveryCollection()));
+
+        static::assertCount(0, $this->process($plan, $dispatcher)->getErrors());
+    }
+
+    private function addressData(string $addressId, string $customerId): CartDataCollection
+    {
+        $address = new CustomerAddressEntity();
+        $address->setId($addressId);
+        $address->setCustomerId($customerId);
+        $address->setCountry(new CountryEntity());
+        $data = new CartDataCollection();
+        $data->set('mn-md-address-' . $addressId, $address);
+
+        return $data;
+    }
+
+    private function policy(bool $allow): DeliveryAddressPolicyInterface
+    {
+        return new class($allow) implements DeliveryAddressPolicyInterface {
+            public function __construct(private readonly bool $allow)
+            {
+            }
+
+            public function isAllowed(CustomerAddressEntity $address, SalesChannelContext $context): bool
+            {
+                return $this->allow;
+            }
+        };
     }
 
     private function manualPlan(): DeliveryPlan

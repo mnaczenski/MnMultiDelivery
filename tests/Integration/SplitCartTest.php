@@ -3,6 +3,8 @@
 namespace Mn\MultiDelivery\Tests\Integration;
 
 use Mn\MultiDelivery\Cart\DeliveryPlan;
+use Mn\MultiDelivery\Cart\Error\DeliveryAddressBlockedError;
+use Mn\MultiDelivery\Cart\Error\DeliveryShippingMethodChangedError;
 use Mn\MultiDelivery\Event\DeliveryAllocationEvent;
 use Mn\MultiDelivery\Rule\DeliveryCountRule;
 use Mn\MultiDelivery\Strategy\DeliveryGroup;
@@ -105,9 +107,29 @@ class SplitCartTest extends IntegrationTestCase
             foreach ($split->getDeliveries() as $delivery) {
                 static::assertNotSame($foreignId, $delivery->getShippingMethod()->getId());
             }
+            // Shopware's behaviour for the order's own shipping method: switch and warn, don't block.
+            $warnings = array_values(array_filter($split->getErrors()->getElements(), static fn ($e) => $e instanceof DeliveryShippingMethodChangedError));
+            static::assertCount(1, $warnings);
+            static::assertSame(2, $warnings[0]->getParameters()['delivery']);
+            static::assertFalse($split->getErrors()->blockOrder());
         } finally {
             $repository->delete([['id' => $foreignId]], Context::createDefaultContext());
         }
+    }
+
+    public function testAnAddressThatCantBeUsedBlocksTheOrder(): void
+    {
+        $product = $this->product('p.stock > 20');
+        $plan = $this->plan($product, 2);
+        // An address id that isn't the customer's: deleted, or never theirs.
+        $plan->setGroupSettings($plan->getManualGroups()[0], Uuid::randomHex(), null);
+
+        $split = $this->calculate([$product => 3], $plan, $this->context());
+
+        static::assertCount(2, $split->getDeliveries());
+        $blocked = array_values(array_filter($split->getErrors()->getElements(), static fn ($e) => $e instanceof DeliveryAddressBlockedError));
+        static::assertCount(1, $blocked);
+        static::assertTrue($split->getErrors()->blockOrder());
     }
 
     protected function plan(string $product, int $toSecond): DeliveryPlan

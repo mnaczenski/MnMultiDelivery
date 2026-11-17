@@ -2,6 +2,7 @@
 
 namespace Mn\MultiDelivery\Tests\Unit\SeparateOrder;
 
+use Mn\MultiDelivery\Cart\Error\DeliveryAddressBlockedError;
 use Mn\MultiDelivery\Event\SeparateOrdersPlacedEvent;
 use Mn\MultiDelivery\Exception\MultiDeliveryException;
 use Mn\MultiDelivery\SeparateOrder\SeparateOrderCalculator;
@@ -16,12 +17,16 @@ use Psr\Log\NullLogger;
 use Shopware\Core\Checkout\Cart\AbstractCartPersister;
 use Shopware\Core\Checkout\Cart\Cart;
 use Shopware\Core\Checkout\Cart\CartContextHasher;
+use Shopware\Core\Checkout\Cart\CartException;
 use Shopware\Core\Checkout\Cart\SalesChannel\AbstractCartOrderRoute;
 use Shopware\Core\Checkout\Cart\SalesChannel\CartOrderRouteResponse;
 use Shopware\Core\Checkout\Customer\Aggregate\CustomerAddress\CustomerAddressEntity;
+use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionCollection;
+use Shopware\Core\Checkout\Order\Aggregate\OrderTransaction\OrderTransactionEntity;
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Checkout\Payment\Cart\PaymentHandler\DefaultPayment;
 use Shopware\Core\Checkout\Cart\LineItem\LineItem;
+use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\Validation\DataBag\RequestDataBag;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use Shopware\Core\System\StateMachine\StateMachineRegistry;
@@ -38,8 +43,11 @@ class SeparateOrderCartOrderRouteTest extends TestCase
 
     private ?string $failOnToken = null;
 
-    /** @var list<string> */
+    /** @var list<string> ids of the cancelled orders */
     private array $cancelled = [];
+
+    /** @var list<string> ids of the cancelled payment transactions */
+    private array $cancelledPayments = [];
 
     /** @var StaticEntityRepository<\Shopware\Core\Checkout\Order\OrderCollection> */
     private StaticEntityRepository $orders;
@@ -117,6 +125,63 @@ class SeparateOrderCartOrderRouteTest extends TestCase
         }
     }
 
+    public function testErrorsOfTheMainOrderStopEverythingBeforeAnythingIsPlaced(): void
+    {
+        $split = $this->split(['at-token'], true);
+        $split->mainCart->addErrors(new DeliveryAddressBlockedError('delivery-2', 2, null));
+
+        try {
+            $this->route($split)->order(new Cart('main-token'), $this->context, new RequestDataBag());
+            static::fail('the blocking error must reach the caller');
+        } catch (CartException $e) {
+            static::assertSame(CartException::CART_INVALID_CODE, $e->getErrorCode());
+        }
+
+        static::assertSame([], $this->placed, 'no separate order went out');
+    }
+
+    public function testCancelledOrdersAlsoCancelTheirOpenPayments(): void
+    {
+        $this->failOnToken = 'main-token';
+
+        try {
+            $this->route($this->split(['at-token', 'ch-token'], true))->order(new Cart('main-token'), $this->context, new RequestDataBag());
+        } catch (\RuntimeException) {
+        }
+
+        static::assertSame(['order-at-token', 'order-ch-token'], $this->cancelled);
+        static::assertSame(['transaction-at-token', 'transaction-ch-token'], $this->cancelledPayments);
+    }
+
+    public function testAFailedLinkIsRetriedAndNeverFailsTheCheckout(): void
+    {
+        $orders = $this->createMock(EntityRepository::class);
+        $orders->expects(static::exactly(2))->method('update')->willThrowException(new \RuntimeException('database gone'));
+        $events = [];
+
+        $response = $this->route($this->split(['at-token'], true), $events, orders: $orders)
+            ->order(new Cart('main-token'), $this->context, new RequestDataBag());
+
+        static::assertSame('order-main-token', $response->getOrder()->getId(), 'the placed orders stand');
+        static::assertSame([], $this->cancelled);
+        static::assertCount(1, $events, 'listeners still hear about the orders');
+    }
+
+    public function testAFailingListenerNeverFailsTheCheckout(): void
+    {
+        $dispatcher = new EventDispatcher();
+        $dispatcher->addListener(SeparateOrdersPlacedEvent::class, static function (): void {
+            throw new \RuntimeException('listener broke');
+        });
+
+        $response = $this->route($this->split(['at-token'], true), dispatcher: $dispatcher)
+            ->order(new Cart('main-token'), $this->context, new RequestDataBag());
+
+        static::assertSame('order-main-token', $response->getOrder()->getId());
+        static::assertSame([], $this->cancelled);
+        static::assertCount(1, $this->orders->updates, 'the orders were linked before the listener ran');
+    }
+
     /**
      * @param list<string> $partTokens
      */
@@ -139,8 +204,9 @@ class SeparateOrderCartOrderRouteTest extends TestCase
     /**
      * @param list<SeparateOrdersPlacedEvent> $events
      * @param array<string, mixed>|null       $settings
+     * @param EntityRepository<\Shopware\Core\Checkout\Order\OrderCollection>|null $orders
      */
-    private function route(?SeparateOrderSplit $split, array &$events = [], ?array $settings = null): SeparateOrderCartOrderRoute
+    private function route(?SeparateOrderSplit $split, array &$events = [], ?array $settings = null, ?EntityRepository $orders = null, ?EventDispatcher $dispatcher = null): SeparateOrderCartOrderRoute
     {
         $decorated = $this->createMock(AbstractCartOrderRoute::class);
         $decorated->method('order')->willReturnCallback(function (Cart $cart, SalesChannelContext $context, RequestDataBag $data): CartOrderRouteResponse {
@@ -152,6 +218,9 @@ class SeparateOrderCartOrderRouteTest extends TestCase
             $order->setId('order-' . $cart->getToken());
             $order->setOrderNumber($cart->getToken());
             $order->setAmountTotal(10.0);
+            $transaction = new OrderTransactionEntity();
+            $transaction->setId('transaction-' . $cart->getToken());
+            $order->setTransactions(new OrderTransactionCollection([$transaction]));
 
             return new CartOrderRouteResponse($order);
         });
@@ -168,12 +237,16 @@ class SeparateOrderCartOrderRouteTest extends TestCase
 
         $stateMachine = $this->createMock(StateMachineRegistry::class);
         $stateMachine->method('transition')->willReturnCallback(function (Transition $transition) {
-            $this->cancelled[] = $transition->getEntityId();
+            if ($transition->getEntityName() === 'order_transaction') {
+                $this->cancelledPayments[] = $transition->getEntityId();
+            } else {
+                $this->cancelled[] = $transition->getEntityId();
+            }
 
             return new \Shopware\Core\System\StateMachine\Aggregation\StateMachineState\StateMachineStateCollection();
         });
 
-        $dispatcher = new EventDispatcher();
+        $dispatcher ??= new EventDispatcher();
         $dispatcher->addListener(SeparateOrdersPlacedEvent::class, static function (SeparateOrdersPlacedEvent $event) use (&$events): void {
             $events[] = $event;
         });
@@ -187,7 +260,7 @@ class SeparateOrderCartOrderRouteTest extends TestCase
             ]),
             $hasher,
             $this->createMock(AbstractCartPersister::class),
-            $this->orders,
+            $orders ?? $this->orders,
             $stateMachine,
             $dispatcher,
             new NullLogger(),

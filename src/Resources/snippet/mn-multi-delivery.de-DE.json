@@ -87,5 +87,9 @@
         "MN_MULTI_DELIVERY__SEPARATE_ORDER_PAYMENT": "Lieferungen in andere Länder werden als separate Bestellungen aufgegeben. Mit der gewählten Zahlungsart ist das nicht möglich – bitte wählen Sie Rechnung oder Vorkasse oder liefern Sie alles innerhalb eines Landes.",
         "MN_MULTI_DELIVERY__SEPARATE_ORDER_INVALID": "Eine der separaten Bestellungen für Ihre Lieferungen kann nicht aufgegeben werden. Bitte prüfen Sie Adresse und Versandart dieser Lieferung.",
         "MN_MULTI_DELIVERY__COUNTRY_NOT_ALLOWED": "In dieses Land können wir keine Lieferung schicken."
+    },
+    "checkout": {
+        "mn-multi-delivery-address-blocked": "Die für Lieferung %delivery% gewählte Adresse kann nicht verwendet werden. Bitte wähle für diese Lieferung eine andere Adresse.",
+        "mn-multi-delivery-shipping-method-changed": "Die für Lieferung %delivery% gewählte Versandart ist nicht mehr verfügbar. Diese Lieferung wird jetzt mit %newShippingMethodName% versendet."
     }
 }

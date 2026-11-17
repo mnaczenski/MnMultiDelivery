@@ -2,6 +2,8 @@
 
 namespace Mn\MultiDelivery\Cart;
 
+use Mn\MultiDelivery\Cart\Error\DeliveryAddressBlockedError;
+use Mn\MultiDelivery\Cart\Error\DeliveryShippingMethodChangedError;
 use Mn\MultiDelivery\Event\DeliveryAllocationEvent;
 use Mn\MultiDelivery\Event\SplitDeliveriesBuiltEvent;
 use Mn\MultiDelivery\Policy\DeliveryAddressPolicies;
@@ -46,6 +48,12 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
  * Without an enabled delivery plan, or for carts the SplitGuard blocks,
  * the cart is left exactly as Shopware built it. Carts without a plan use
  * the merchant's default plan (auto split).
+ *
+ * A delivery whose chosen address can't be used gets the main delivery's
+ * address and a DeliveryAddressBlockedError that blocks the order; one whose
+ * chosen shipping method is unavailable gets the main delivery's method and a
+ * DeliveryShippingMethodChangedError warning (Shopware's behaviour for the
+ * order's own address and shipping method).
  *
  * Extension points, in order: the strategy (DeliverySplitStrategyInterface),
  * DeliveryAllocationEvent, the address policies, the shipping cost policy
@@ -152,7 +160,9 @@ class SplitDeliveryProcessor implements CartProcessorInterface, CartDataCollecto
         $event = new DeliveryAllocationEvent($allocation, $roots, $strategy->getName(), $plan, $toCalculate, $context);
         $allocation = $this->dispatcher->dispatch($event)->getAllocation();
 
-        $split = $this->buildDeliveries($allocation, $roots, $base, $plan, $data, $context);
+        /** @var array<string, array{address?: ?string, shippingMethod?: true}> $fallbacks */
+        $fallbacks = [];
+        $split = $this->buildDeliveries($allocation, $roots, $base, $plan, $data, $context, $fallbacks);
         if ($split->count() < 2) {
             return;
         }
@@ -166,6 +176,36 @@ class SplitDeliveryProcessor implements CartProcessorInterface, CartDataCollecto
         }
         $toCalculate->setDeliveries($split);
         $toCalculate->addArrayExtension(self::SINGLE_DELIVERY_EXTENSION, ['shippingCosts' => $base->getShippingCosts()->getTotalPrice()]);
+        $this->addFallbackErrors($toCalculate, $split, $fallbacks, $base);
+    }
+
+    /**
+     * Tells the customer about deliveries whose chosen address or shipping method couldn't be used.
+     * Numbered like the planner: by position in the final deliveries.
+     *
+     * @param array<string, array{address?: ?string, shippingMethod?: true}> $fallbacks
+     */
+    private function addFallbackErrors(Cart $cart, DeliveryCollection $deliveries, array $fallbacks, Delivery $base): void
+    {
+        if ($fallbacks === []) {
+            return;
+        }
+        $number = 0;
+        foreach ($deliveries as $delivery) {
+            ++$number;
+            $groupId = $delivery->getExtensionOfType(DeliveryGroupInfo::EXTENSION, DeliveryGroupInfo::class)?->getGroupId();
+            $fallback = $groupId !== null ? $fallbacks[$groupId] ?? null : null;
+            if ($groupId === null || $fallback === null) {
+                continue;
+            }
+            if (\array_key_exists('address', $fallback)) {
+                $cart->addErrors(new DeliveryAddressBlockedError($groupId, $number, $fallback['address']));
+            }
+            if (isset($fallback['shippingMethod'])) {
+                $method = $base->getShippingMethod();
+                $cart->addErrors(new DeliveryShippingMethodChangedError($groupId, $number, (string) ($method->getTranslation('name') ?? $method->getName() ?? '')));
+            }
+        }
     }
 
     /**
@@ -244,9 +284,10 @@ class SplitDeliveryProcessor implements CartProcessorInterface, CartDataCollecto
     }
 
     /**
-     * @param array<string, RootItem> $roots
+     * @param array<string, RootItem>                                         $roots
+     * @param array<string, array{address?: ?string, shippingMethod?: true}> $fallbacks filled with the groups whose chosen address or shipping method was replaced
      */
-    private function buildDeliveries(Allocation $allocation, array $roots, Delivery $base, DeliveryPlan $plan, CartDataCollection $data, SalesChannelContext $context): DeliveryCollection
+    private function buildDeliveries(Allocation $allocation, array $roots, Delivery $base, DeliveryPlan $plan, CartDataCollection $data, SalesChannelContext $context, array &$fallbacks): DeliveryCollection
     {
         /** @var array<string, list<DeliveryPosition>> $positionsByGroup */
         $positionsByGroup = [];
@@ -277,11 +318,21 @@ class SplitDeliveryProcessor implements CartProcessorInterface, CartDataCollecto
             }
 
             $settings = $plan->getGroupSettings($groupId);
+            $addressId = $settings['addressId'] ?? null;
+            $shippingMethodId = $settings['shippingMethodId'] ?? null;
+            $location = $this->location($addressId, $base, $data, $context);
+            if ($addressId !== null && $location->getAddress()?->getId() !== $addressId) {
+                $fallbacks[$groupId]['address'] = $addressId;
+            }
+            $shippingMethod = $this->shippingMethod($shippingMethodId, $base, $data);
+            if ($shippingMethodId !== null && $shippingMethod->getId() !== $shippingMethodId) {
+                $fallbacks[$groupId]['shippingMethod'] = true;
+            }
             $delivery = new Delivery(
                 new DeliveryPositionCollection($positions),
                 $this->latestDate($positions),
-                $this->shippingMethod($settings['shippingMethodId'] ?? null, $base, $data),
-                $this->location($settings['addressId'] ?? null, $base, $data, $context),
+                $shippingMethod,
+                $location,
                 new CalculatedPrice(0, 0, new CalculatedTaxCollection(), $base->getShippingCosts()->getTaxRules())
             );
             $delivery->addExtension(DeliveryGroupInfo::EXTENSION, new DeliveryGroupInfo(
